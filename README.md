@@ -2,7 +2,7 @@
 
 Requirements
 
- - Python 2.7
+ - Python 3
 
 To view the help message of scripts:  
 python brz_magick.py -h
