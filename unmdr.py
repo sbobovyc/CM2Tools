@@ -40,89 +40,6 @@ def print4x4matrix(matrix):
         print("[{0: .2f}, {1: .2f}, {2: .2f}, {3: .2f}]".format(row[0], row[1], row[2], row[3]))
     print("]")
 
-########
-# object:
-# face indices
-# UVs,
-# then,
-# vertices (in object space?)
-# then,
-# normals
-####
-
-
-class MDR_Object:
-    """MDR object
-    """
-    def __init__(self, name):
-        """The constructor takes a model name as parameter. All other variables are set
-        directly.
-        """
-        self.name = name
-        self.index_array = []   # [ (i,i,i) ...]
-        self.uv_array = []      # [ (f,f) ...]        
-        self.vertex_array = []  # [ (f,f,f) ...]
-        self.vertex_normal_array = []  # [ (i16,i16,i16) ...]
-        self.texture_name = ""
-        self.material = None
-        #TODO add meta data objects
-
-    def make_wavefront_obj(self):
-        """ Serialize mdr to obj format and return it as a string."""        
-        string = ""
-        string += "o %s\n" % self.name
-        # write material info
-        string += "mtllib %s\n" % self.name
-        string += "usemtl %s\n" % self.name
-
-        use_Blender_order = True
-        # write vertex info
-        if use_Blender_order:
-            for vert in self.vertex_array:
-                string += "v %s %s %s\n" % ( float2string(vert[0]), float2string(vert[1]), float2string(vert[2]))
-            for uv in self.uv_array:
-                string += "vt %s %s\n" % (uv[0], uv[1])
-            for norm in self.vertex_normal_array:
-                string += "vn %s %s %s\n" % (short2float(norm[0]), short2float(norm[1]), short2float(norm[2]))
-            for idx in self.index_array:
-                # string += "f %i/%i/%i %i/%i/%i %i/%i/%i\n" % (
-                # idx[0] + 1, idx[0] + 1, idx[0] + 1, idx[1] + 1, idx[1] + 1, idx[1] + 1, idx[2] + 1, idx[2] + 1,
-                # idx[2] + 1)
-                string += "f %i/%i %i/%i %i/%i\n" % (
-                idx[0] + 1, idx[0] + 1, idx[1] + 1, idx[1] + 1, idx[2] + 1, idx[2] + 1)
-        else:
-            for idx in self.index_array:
-                string += "f %i/%i/%i %i/%i/%i %i/%i/%i\n" % (
-                idx[0] + 1, idx[0] + 1, idx[0] + 1, idx[1] + 1, idx[1] + 1, idx[1] + 1, idx[2] + 1, idx[2] + 1,
-                idx[2] + 1)
-            for uv in self.uv_array:
-                string += "vt %s %s\n" % (uv[0], uv[1])            
-            for vert in self.vertex_array:
-                string += "v %s %s %s\n" % ( float2string(vert[0]), float2string(vert[1]), float2string(vert[2]))
-            for norm in self.vertex_normal_array:
-                string += "vn %s %s %s\n" % (short2float(norm[0]), short2float(norm[1]), short2float(norm[2]))
-
-        return string
-
-    def make_wavefront_mtl(self):
-        """ Create a material definition file."""
-        string = ""
-        string += "newmtl %s\n" % self.name
-        if self.material is None:
-            string += "Ka 0.5 0.5 0.5 # gray\n"   # ambient color
-            string += "Kd 0.5 0.5 0.5 # gray\n"   # diffuse color
-            string += "Ks 0.0 0.0 0.0\n"          # specular color, off
-            string += "Ns 0.0\n"                  # specular exponent
-        else:
-            string += "Ka %f %f %f\n" % (self.material["ambient_color"])
-            string += "Kd %f %f %f\n" % (self.material["diffuse_color"])
-            string += "Ks %f %f %f\n" % (self.material["specular_color"])
-            string += "Ns %f\n" % (self.material["specular_exponent"])
-        string += "d 1.0\n"                   # transparency        
-        string += "illum 1\n"                 # Color on and Ambient on
-        string += "map_Kd %s.bmp\n" % self.texture_name
-        return string
-    
 
 def read_matrix(f):
     print("# Start reading matrix", "0x%x" % f.tell())
@@ -167,207 +84,296 @@ def read_material(f):
     return material
 
 
-def dump_model(base_name, num_models, f, model_number, outdir, dump=True, verbose=False):
-    print("# Start model %i" % model_number, "at 0x%x" % f.tell(), "##############################################################")
-    name_length, = struct.unpack("<H", f.read(2))
-    print("# submodel name length:", name_length)
-    submodel_name = f.read(name_length).decode("ascii")
-    print("# submodel name:", submodel_name)
+class MDR:
+    def __init__(self, filepath, base_name, outdir, parse_only=False, verbose=False):
+        self.filepath = filepath
+        self.base_name = base_name
+        self.outdir = outdir
+        self.parse_only = parse_only
+        self.verbose = verbose
+        self.objects = []
+        self.model_manifests = []
 
-    # output files
-    obj_fout = None
-    mtl_fout = None
-    
-    # object
-    mdr_obj = None
+        with open(self.filepath, "rb") as f:
+            num_models, = struct.unpack("<Ix", f.read(5))
+            print("# number of models", num_models)
+            for i in range(0, num_models):
+                mdr_obj = MDRObject()
+                manifest = mdr_obj.read(self.base_name, num_models, f, i, self.outdir, not self.parse_only, self.verbose)
+                self.objects.append(mdr_obj)
+                self.model_manifests.append(manifest)
 
-    # logging to ease reversing
-    logger = open("logger.txt", 'ab')
-    
-    if dump:
-        obj_fout = open(os.path.join(outdir, "%s_%s.obj" % (base_name, submodel_name)), 'wb')
-        mtl_fout = open(os.path.join(outdir, "%s_%s.mtl" % (base_name, submodel_name)), 'wb')
-        mdr_obj = MDR_Object("%s_%s" % (base_name, submodel_name))
+        if not self.parse_only:
+            with open(os.path.join(args.outdir, "%s_manifest.json" % self.base_name), "w") as f:
+                json.dump([u'%s' % self.base_name, self.model_manifests], f, indent=4)
 
-    unk, = struct.unpack("b", f.read(1))
-    print("# Read unknown byte (always 2?):", unk)
-    if unk != 2:
-        error_message = "Unknown is not 2"
-        #raise ValueError(error_message)
-        print(error_message)
-    print("# Start unknown section", "0x%x" % f.tell())    
-    for i in range(0, int(0xB0/4)):
-        unk, = struct.unpack("f", f.read(4))
-        if verbose:
-            print("# [%i] %f" % (i, unk))
-    print("# Finished unknown section", "0x%x" % f.tell())
 
-    ###############################################
-    print("# Start face vertex indices")
-    face_count, = struct.unpack("<I", f.read(4))
-    print("# Face count:", face_count/3)
-    manifest = {u'model': base_name, u'sub_model': submodel_name, u'vertex_index_offset' : f.tell()}
-    
-    for i in range(0, int(face_count/3)):
-        if not dump:
-            f.read(6)
+class MDRObject:
+    """MDR object
+    """
+    def __init__(self):
+        """The constructor takes a model name as parameter. All other variables are set
+        directly.
+        """
+        self.base_name = ""
+        self.name = ""
+        self.index_array = []   # [ (i,i,i) ...]
+        self.uv_array = []      # [ (f,f) ...]        
+        self.vertex_array = []  # [ (f,f,f) ...]
+        self.vertex_normal_array = []  # [ (i16,i16,i16) ...]
+        self.texture_name = ""
+        self.material = None
+        #TODO add meta data objects
+
+    def read(self, base_name, num_models, f, model_number, outdir, dump=True, verbose=False):
+        ########
+        # object:
+        # face indices
+        # UVs,
+        # then,
+        # vertices (in object space?)
+        # then,
+        # normals
+        ####
+        self.base_name = base_name
+        print("# Start model %i" % model_number, "at 0x%x" % f.tell(),
+              "##############################################################")
+        name_length, = struct.unpack("<H", f.read(2))
+        print("# submodel name length:", name_length)
+        self.name = f.read(name_length).decode("ascii")
+        print("# submodel name:", self.name)
+
+        unk, = struct.unpack("b", f.read(1))
+        print("# Read unknown byte (always 2?):", unk)
+        if unk != 2:
+            error_message = "Unknown is not 2"
+            # raise ValueError(error_message)
+            print(error_message)
+        print("# Start unknown section", "0x%x" % f.tell())
+        for i in range(0, int(0xB0 / 4)):
+            unk, = struct.unpack("f", f.read(4))
+            if verbose:
+                print("# [%i] %f" % (i, unk))
+        print("# Finished unknown section", "0x%x" % f.tell())
+
+        ###############################################
+        print("# Start face vertex indices")
+        face_count, = struct.unpack("<I", f.read(4))
+        print("# Face count:", face_count / 3)
+        manifest = {u'model': base_name, u'sub_model': self.name, u'vertex_index_offset': f.tell()}
+
+        for i in range(0, int(face_count / 3)):
+            if not dump:
+                f.read(6)
+            else:
+                v0, v1, v2 = struct.unpack("<HHH", f.read(6))
+                # print("f %i/%i %i/%i %i/%i" % (v0+1,v0+1,v1+1,v1+1,v2+1,v2+1))
+                self.index_array.append((v0, v1, v2))
+        print("# Finished face vertex indices", "0x%x" % f.tell())
+        ###############################################
+
+        ###############################################
+        print("# Start UVs")
+        uv_in_section, = struct.unpack("<I", f.read(4))
+        print("# UV in section:", uv_in_section / 2)
+
+        manifest[u'vertex_uv_offset'] = f.tell()
+
+        for i in range(0, int(uv_in_section / 2)):
+            if not dump:
+                f.read(8)
+            else:
+                u, v = struct.unpack("<ff", f.read(8))
+                # print("vt", u,v)
+                self.uv_array.append((u, v))
+        print("# Finish UV section:", "0x%x" % f.tell())
+        ###############################################
+
+        print("# Start unknown section 1")
+        unk, = struct.unpack("<I", f.read(4))
+        print("# Unknown 0x%x" % unk, "at 0x%x" % f.tell())
+
+        if model_number == 0:
+            read_material(f)
+            read_material(f)
+
+            print("# End unknown section", "0x%x" % f.tell())
+            unk, = struct.unpack("<I", f.read(4))
+            print("# Read 4 bytes (always 0?)", unk)
+            if unk != 0:
+                error_message = "Unknown is not 0"
+                raise ValueError(error_message)
+                # print(error_message)
+
+            object_count, = struct.unpack("<I", f.read(4))
+            print("# Read 4 bytes, object count: ", object_count)
+
+            for i in range(0, object_count):
+                name_length, = struct.unpack("<H", f.read(2))
+                print("Anchor point %i: %s" % (i, f.read(name_length)))
+                read_matrix(f)
+            f.read(2)  # always 0
+            print("# random garbage? ", "0x%x" % f.tell())
+            # unk = struct.unpack("f"*12, f.read(48))
+            read_material(f)
+            print("# unknown", unk)
+            f.read(2)  # always 0
+            meta1_offset = f.tell()
+            meta1 = read_material(f)
+            if dump:
+                self.material = meta1
+            manifest[u'material'] = []
+            manifest[u'material'].append(({u'offset': meta1_offset}, meta1))
+            print("# Unknown float", struct.unpack("f", f.read(4)))
+            print("# End list of anchor points", "0x%x" % f.tell())
+            print("# End unknown", "0x%x" % f.tell())
         else:
-            v0, v1, v2 = struct.unpack("<HHH", f.read(6))
-            #print("f %i/%i %i/%i %i/%i" % (v0+1,v0+1,v1+1,v1+1,v2+1,v2+1))
-            mdr_obj.index_array.append((v0,v1,v2))
-    print("# Finished face vertex indices", "0x%x" % f.tell())
-    ###############################################
+            length, = struct.unpack("<xxH", f.read(4))
+            parent_name = f.read(length).decode("ascii")
+            print("# parent name:", parent_name, hex(f.tell()))
+            read_material(f)
+            read_material(f)
+            memory_point_count, = struct.unpack("<I", f.read(4))
+            print("# Memory point count", memory_point_count)
+            for i in range(0, memory_point_count):
+                length, = struct.unpack("<H", f.read(2))
+                memory_point_name = f.read(length).decode("ascii")
+                print("# Memory point name:", memory_point_name)
+                if length != 0:
+                    read_matrix(f)
+                print("#End of sub-meta", "0x%x" % f.tell())
+            for i in range(int(0x68 / 4)):
+                print(struct.unpack("f", f.read(4)))
+            print("# Unknown meta finished", "0x%x" % f.tell())
 
-    ###############################################
-    print("# Start UVs")
-    uv_in_section, = struct.unpack("<I", f.read(4))
-    print("# UV in section:", uv_in_section/2)
-
-    manifest[u'vertex_uv_offset'] = f.tell()
-    
-    for i in range(0, int(uv_in_section/2)):
-        if not dump:
-            f.read(8)
-        else:
-            u,v = struct.unpack("<ff", f.read(8))        
-            #print("vt", u,v)
-            mdr_obj.uv_array.append((u,v))                    
-    print("# Finish UV section:", "0x%x" % f.tell())
-    ###############################################
-
-    print("# Start unknown section 1")
-    unk, = struct.unpack("<I", f.read(4))
-    print("# Unknown 0x%x" % unk, "at 0x%x" % f.tell())
-
-    if model_number == 0:
-        read_material(f)
-        read_material(f)
-        
-        print("# End unknown section", "0x%x" % f.tell())
         unk, = struct.unpack("<I", f.read(4))
         print("# Read 4 bytes (always 0?)", unk)
         if unk != 0:
             error_message = "Unknown is not 0"
-            raise ValueError(error_message)
-            # print(error_message)
+            # raise ValueError(error_message)
+            print(error_message)
 
-        object_count, = struct.unpack("<I", f.read(4))
-        print("# Read 4 bytes, object count: ", object_count)
-
-        for i in range(0, object_count):
-            name_length, = struct.unpack("<H", f.read(2))
-            print("Anchor point %i: %s" % (i, f.read(name_length)))
-            read_matrix(f)
-        f.read(2) # always 0
-        print("# random garbage? ", "0x%x" % f.tell())
-        # unk = struct.unpack("f"*12, f.read(48))
-        read_material(f)
-        print("# unknown", unk)
-        f.read(2)  # always 0
-        meta1_offset = f.tell()
-        meta1 = read_material(f)
+        name_length, = struct.unpack("<H", f.read(2))
+        texture_name = f.read(name_length).decode("ascii")
+        print("# Texture name:", texture_name)
         if dump:
-            mdr_obj.material = meta1
-        manifest[u'material'] = []
-        manifest[u'material'].append( ( {u'offset': meta1_offset}, meta1) )
-        print("# Unknown float", struct.unpack("f", f.read(4)))
-        print("# End list of anchor points", "0x%x" % f.tell())
-        print("# End unknown", "0x%x" % f.tell())
-    else:
-        length, = struct.unpack("<xxH", f.read(4))
-        parent_name = f.read(length).decode("ascii")
-        print("# parent name:", parent_name, hex(f.tell()))
-        read_material(f)
-        read_material(f)
-        memory_point_count, = struct.unpack("<I", f.read(4))
-        print("# Memory point count", memory_point_count)
-        for i in range(0, memory_point_count):
-            length, = struct.unpack("<H", f.read(2))
-            memory_point_name = f.read(length).decode("ascii")
-            print("# Memory point name:", memory_point_name)
-            if length != 0:
-                read_matrix(f)
-            print("#End of sub-meta", "0x%x" % f.tell())
-        for i in range(int(0x68/4)):
-            print(struct.unpack("f", f.read(4)))
-        print("# Unknown meta finished", "0x%x" % f.tell())
+            self.texture_name = texture_name
 
-    unk, = struct.unpack("<I", f.read(4))
-    print("# Read 4 bytes (always 0?)", unk)
-    if unk != 0:
-        error_message = "Unknown is not 0"
-        #raise ValueError(error_message)
-        print(error_message)
+        unk, = struct.unpack("b", f.read(1))
+        print("# Read unknown byte (always 2?):", unk)
+        if unk != 2:
+            error_message = "Unknown is not 2"
+            # raise ValueError(error_message)
+            print(error_message)
 
-    name_length, = struct.unpack("<H", f.read(2))
-    texture_name = f.read(name_length).decode("ascii")
-    print("# Texture name:", texture_name)
-    if dump:
-        mdr_obj.texture_name = texture_name
-
-    unk, = struct.unpack("b", f.read(1))
-    print("# Read unknown byte (always 2?):", unk)
-    if unk != 2:
-        error_message = "Unknown is not 2"
-        #raise ValueError(error_message)
-        print(error_message)
-
-    print("# Start unknown section of 176 bytes", "0x%x" % f.tell())
-    for i in range(0, int(0xB0/4)):
-        unk, = struct.unpack("f", f.read(4))
-        if verbose:
-            print("# [%i] %i" % (i, unk))
-    print("# Finished unknown section", "0x%x" % f.tell())
-
-    ###############################################
-    print("# Start vertices")
-    vertex_floats, = struct.unpack("<I", f.read(4))
-    print("# Vertex count:", vertex_floats/3)
-    manifest[u'vertex_offset'] = f.tell()
-    
-    for i in range(0, int(vertex_floats/3)):
-        if not dump:
-            f.read(12)
-        else:
-            x, y, z = struct.unpack("fff", f.read(12))
-            mdr_obj.vertex_array.append((x, y, z))
-    print("# End vertices", "0x%x" % f.tell())
-    ###############################################
-    
-    print("# Start vertex normals")
-    normal_count, = struct.unpack("<I", f.read(4))
-    print("# Normals count:", normal_count/3) # 3 per vertex
-    manifest[u'vertex_normals_offset'] = f.tell()
-
-    for i in range(0, int(normal_count/3)):
-        if not dump:
-            f.read(6)
-        else:
-            nx, ny, nz = struct.unpack("<HHH", f.read(6))
+        print("# Start unknown section of 176 bytes", "0x%x" % f.tell())
+        for i in range(0, int(0xB0 / 4)):
+            unk, = struct.unpack("f", f.read(4))
             if verbose:
-                print("# [%i] %i %i %i" % (i, nx, ny, nz))
-            mdr_obj.vertex_normal_array.append((nx, ny, nz))
-    print("# End normals", "0x%x" % f.tell())
-    ###############################################
+                print("# [%i] %i" % (i, unk))
+        print("# Finished unknown section", "0x%x" % f.tell())
 
-    unk, = struct.unpack("<I", f.read(4))
-    print("# Parsing footer, count:", unk)
-    if unk != 0:
-        print(f.name)
-        for i in range(0, unk):
-            print(struct.unpack("<fff", f.read(12)))
-            length, = struct.unpack("<I", f.read(4))
-            f.read(length * 4)
-    print("# End model ##############################################################")
-    f.read(1)
+        ###############################################
+        print("# Start vertices")
+        vertex_floats, = struct.unpack("<I", f.read(4))
+        print("# Vertex count:", vertex_floats / 3)
+        manifest[u'vertex_offset'] = f.tell()
 
-    if dump:
-        obj_fout.write(mdr_obj.make_wavefront_obj().encode("ascii"))
-        mtl_fout.write(mdr_obj.make_wavefront_mtl().encode("ascii"))
-        obj_fout.close()
-        mtl_fout.close()
-    logger.close()
-    return manifest
+        for i in range(0, int(vertex_floats / 3)):
+            if not dump:
+                f.read(12)
+            else:
+                x, y, z = struct.unpack("fff", f.read(12))
+                self.vertex_array.append((x, y, z))
+        print("# End vertices", "0x%x" % f.tell())
+        ###############################################
+
+        print("# Start vertex normals")
+        normal_count, = struct.unpack("<I", f.read(4))
+        print("# Normals count:", normal_count / 3)  # 3 per vertex
+        manifest[u'vertex_normals_offset'] = f.tell()
+
+        for i in range(0, int(normal_count / 3)):
+            if not dump:
+                f.read(6)
+            else:
+                nx, ny, nz = struct.unpack("<HHH", f.read(6))
+                if verbose:
+                    print("# [%i] %i %i %i" % (i, nx, ny, nz))
+                self.vertex_normal_array.append((nx, ny, nz))
+        print("# End normals", "0x%x" % f.tell())
+        ###############################################
+
+        unk, = struct.unpack("<I", f.read(4))
+        print("# Parsing footer, count:", unk)
+        if unk != 0:
+            print(f.name)
+            for i in range(0, unk):
+                print(struct.unpack("<fff", f.read(12)))
+                length, = struct.unpack("<I", f.read(4))
+                f.read(length * 4)
+        print("# End model ##############################################################")
+        f.read(1)
+
+        return manifest
+
+
+def make_wavefront_obj(mdr_ob):
+    """ Serialize mdr to obj format and return it as a string."""
+    string = ""
+    string += "o %s\n" % mdr_ob.name
+    # write material info
+    string += "mtllib %s\n" % mdr_ob.name
+    string += "usemtl %s\n" % mdr_ob.name
+
+    use_Blender_order = True
+    # write vertex info
+    if use_Blender_order:
+        for vert in mdr_ob.vertex_array:
+            string += "v %s %s %s\n" % ( float2string(vert[0]), float2string(vert[1]), float2string(vert[2]))
+        for uv in mdr_ob.uv_array:
+            string += "vt %s %s\n" % (uv[0], uv[1])
+        for norm in mdr_ob.vertex_normal_array:
+            string += "vn %s %s %s\n" % (short2float(norm[0]), short2float(norm[1]), short2float(norm[2]))
+        for idx in mdr_ob.index_array:
+            # string += "f %i/%i/%i %i/%i/%i %i/%i/%i\n" % (
+            # idx[0] + 1, idx[0] + 1, idx[0] + 1, idx[1] + 1, idx[1] + 1, idx[1] + 1, idx[2] + 1, idx[2] + 1,
+            # idx[2] + 1)
+            string += "f %i/%i %i/%i %i/%i\n" % (
+            idx[0] + 1, idx[0] + 1, idx[1] + 1, idx[1] + 1, idx[2] + 1, idx[2] + 1)
+    else:
+        for idx in mdr_ob.index_array:
+            string += "f %i/%i/%i %i/%i/%i %i/%i/%i\n" % (
+            idx[0] + 1, idx[0] + 1, idx[0] + 1, idx[1] + 1, idx[1] + 1, idx[1] + 1, idx[2] + 1, idx[2] + 1,
+            idx[2] + 1)
+        for uv in mdr_ob.uv_array:
+            string += "vt %s %s\n" % (uv[0], uv[1])
+        for vert in mdr_ob.vertex_array:
+            string += "v %s %s %s\n" % ( float2string(vert[0]), float2string(vert[1]), float2string(vert[2]))
+        for norm in mdr_ob.vertex_normal_array:
+            string += "vn %s %s %s\n" % (short2float(norm[0]), short2float(norm[1]), short2float(norm[2]))
+
+    return string
+
+
+def make_wavefront_mtl(mdr_ob):
+    """ Create a material definition file."""
+    string = ""
+    string += "newmtl %s\n" % mdr_ob.name
+    if mdr_ob.material is None:
+        string += "Ka 0.5 0.5 0.5 # gray\n"   # ambient color
+        string += "Kd 0.5 0.5 0.5 # gray\n"   # diffuse color
+        string += "Ks 0.0 0.0 0.0\n"          # specular color, off
+        string += "Ns 0.0\n"                  # specular exponent
+    else:
+        string += "Ka %f %f %f\n" % (mdr_ob.material["ambient_color"])
+        string += "Kd %f %f %f\n" % (mdr_ob.material["diffuse_color"])
+        string += "Ks %f %f %f\n" % (mdr_ob.material["specular_color"])
+        string += "Ns %f\n" % (mdr_ob.material["specular_exponent"])
+    string += "d 1.0\n"                   # transparency
+    string += "illum 1\n"                 # Color on and Ambient on
+    string += "map_Kd %s.bmp\n" % mdr_ob.texture_name
+    return string
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description='Tool for experimenting with mdr files.')
@@ -388,14 +394,11 @@ if __name__ == "__main__":
     
     print("# ", filepath)
     base_name = os.path.splitext(os.path.basename(filepath))[0]
-    model_manifests = []
-    with open(filepath, "rb") as f:
-        num_models, = struct.unpack("<Ix", f.read(5))
-        print("# number of models", num_models)
-        for i in range(0, num_models):
-            manifest = dump_model(base_name, num_models, f, i, args.outdir, not args.parse_only, args.verbose)
-            model_manifests.append(manifest)
+    m = MDR(filepath, base_name, args.outdir, args.parse_only, args.verbose)
 
     if not args.parse_only:
-        with open(os.path.join(args.outdir, "%s_manifest.json" % base_name), "w") as f:
-            json.dump([u'%s' % base_name, model_manifests], f, indent=4)
+        for ob in m.objects:
+            with open(os.path.join(args.outdir, "%s_%s.obj" % (ob.base_name, ob.name)), 'wb') as obj_fout:
+                obj_fout.write(make_wavefront_obj(ob).encode("ascii"))
+            with open(os.path.join(args.outdir, "%s_%s.mtl" % (ob.base_name, ob.name)), 'wb') as mtl_fout:
+                mtl_fout.write(make_wavefront_mtl(ob).encode("ascii"))
