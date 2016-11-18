@@ -30,6 +30,7 @@ Run this script from "File->Import" menu and then load the desired MDR file.
 import bpy
 import os
 from bpy_extras.io_utils import unpack_list
+from bpy_extras.image_utils import load_image
 from mathutils import Matrix 
 from .mdr import MDR
 
@@ -73,7 +74,26 @@ def load(context, filepath):
         me.validate(clean_customdata=False)  # *Very* important to not remove lnors here!
         me.update(calc_tessface=True, calc_edges=True)
 
+        me.uv_textures.new()
+        for i, (face, blen_poly) in enumerate(zip(faces, me.polygons)):
+            blen_uvs = me.uv_layers[0]
+            for face_uvidx, lidx in zip(face, blen_poly.loop_indices):
+                blen_uvs.data[lidx].uv = mdr_ob.uv_array[0 if (face_uvidx is ...) else face_uvidx]
+
+        #TODO optimize material creation
+        mat = bpy.data.materials.new(me.name)
+        tex = bpy.data.textures.new('DiffuseTex', type = 'IMAGE')
+        print("Load texture", mdr_ob.texture_name)
+        tex.image = load_image(mdr_ob.texture_name+".bmp", os.path.dirname(filepath))
+        if tex.image is None:
+            print("Could not load", mdr_ob.texture_name)
+        mtex = mat.texture_slots.add()
+        mtex.texture = tex
+        mtex.texture_coords = 'UV'
+        mtex.use_map_color_diffuse = True
+
         ob = bpy.data.objects.new(me.name, me)
+        ob.data.materials.append(mat)
         new_objects.append(ob)
 
     for ob,mdr_ob in zip(new_objects, m.objects):
