@@ -123,7 +123,7 @@ class MDRObject:
         self.vertex_normal_array = []  # [ (i16,i16,i16) ...]
         self.texture_name = ""
         self.material = None
-        #TODO add meta data objects
+        self.anchor_points = []  # [ (name, matrix) ...]
 
     def read(self, base_name, num_models, f, model_number, outdir, dump=True, verbose=False):
         ########
@@ -210,8 +210,10 @@ class MDRObject:
 
             for i in range(0, object_count):
                 name_length, = struct.unpack("<H", f.read(2))
-                print("Anchor point %i: %s" % (i, f.read(name_length)))
-                read_matrix(f)
+                anchor_name = f.read(name_length).decode("ascii")
+                print("Anchor point %i: %s" % (i, anchor_name))
+                m = read_matrix(f)
+                self.anchor_points.append((anchor_name, m))
             f.read(2)  # always 0
             print("# random garbage? ", "0x%x" % f.tell())
             # unk = struct.unpack("f"*12, f.read(48))

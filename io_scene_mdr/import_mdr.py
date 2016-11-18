@@ -30,6 +30,7 @@ Run this script from "File->Import" menu and then load the desired MDR file.
 import bpy
 import os
 from bpy_extras.io_utils import unpack_list
+from mathutils import Matrix 
 from .mdr import MDR
 
 
@@ -80,5 +81,23 @@ def load(context, filepath):
         if ob != new_objects[0]:
             parent = next((x for x in new_objects if x.name == mdr_ob.parent_name))
             ob.parent = parent
+        for anchor in mdr_ob.anchor_points:
+            print(anchor)
+            name = anchor[0]
+            matrix = anchor[1]
+            transform_matrix = [ 4*[0] for i in range(4)]
+            for i in range(0, 4):
+                for j in range(0, 3):
+                    transform_matrix[j][i] = matrix[i][j]
+            transform_matrix[3][3] = 1.0    
+            m = Matrix(transform_matrix)
+            print(m)
+            """
+            anchor_ob = bpy.data.objects.new(name, None )
+            bpy.context.scene.objects.link(anchor_ob)
+            anchor_ob.empty_draw_size = 0.1
+            anchor_ob.empty_draw_type = 'SINGLE_ARROW'
+            anchor_ob.matrix_world = m
+            """
         context.scene.objects.link(ob)
     return {'FINISHED'}
