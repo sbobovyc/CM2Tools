@@ -102,7 +102,7 @@ class MDR:
                 self.objects.append(mdr_obj)
                 self.model_manifests.append(manifest)
 
-        if dump_manifest:
+        if dump_manifest and not self.parse_only:
             with open(os.path.join(self.outdir, "%s_manifest.json" % self.base_name), "w") as f:
                 json.dump([u'%s' % self.base_name, self.model_manifests], f, indent=4)
 
