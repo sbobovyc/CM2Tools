@@ -84,7 +84,7 @@ def read_material(f):
 
 
 class MDR:
-    def __init__(self, filepath, base_name, outdir, parse_only=False, verbose=False):
+    def __init__(self, filepath, base_name, outdir, dump_manifest=False, parse_only=False, verbose=False):
         self.filepath = filepath
         self.base_name = base_name
         self.outdir = outdir
@@ -102,7 +102,7 @@ class MDR:
                 self.objects.append(mdr_obj)
                 self.model_manifests.append(manifest)
 
-        if not self.parse_only:
+        if dump_manifest:
             with open(os.path.join(self.outdir, "%s_manifest.json" % self.base_name), "w") as f:
                 json.dump([u'%s' % self.base_name, self.model_manifests], f, indent=4)
 
