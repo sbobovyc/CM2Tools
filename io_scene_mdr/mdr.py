@@ -116,6 +116,7 @@ class MDRObject:
         """
         self.base_name = ""
         self.name = ""
+        self.parent_name = ""
         self.index_array = []   # [ (i,i,i) ...]
         self.uv_array = []      # [ (f,f) ...]        
         self.vertex_array = []  # [ (f,f,f) ...]
@@ -228,8 +229,8 @@ class MDRObject:
             print("# End unknown", "0x%x" % f.tell())
         else:
             length, = struct.unpack("<xxH", f.read(4))
-            parent_name = f.read(length).decode("ascii")
-            print("# parent name:", parent_name, hex(f.tell()))
+            self.parent_name = f.read(length).decode("ascii")
+            print("# parent name:", self.parent_name, hex(f.tell()))
             read_material(f)
             read_material(f)
             memory_point_count, = struct.unpack("<I", f.read(4))

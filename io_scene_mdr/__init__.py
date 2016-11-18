@@ -129,24 +129,23 @@ class ImportMDR(bpy.types.Operator, ImportHelper, IOOBJOrientationHelper):
             self.use_split_groups = False
         else:
             self.use_groups_as_vgroups = False
-
+        """
         keywords = self.as_keywords(ignore=("axis_forward",
                                             "axis_up",
                                             "filter_glob",
                                             "split_mode",
                                             ))
-
+        """
         global_matrix = axis_conversion(from_forward=self.axis_forward,
                                         from_up=self.axis_up,
                                         ).to_4x4()
         keywords["global_matrix"] = global_matrix
+        """
 
         if bpy.data.is_saved and context.user_preferences.filepaths.use_relative_paths:
             import os
-            keywords["relpath"] = os.path.dirname(bpy.data.filepath)        
+            keywords["relpath"] = os.path.dirname(bpy.data.filepath)
         return import_mdr.load(context, **keywords)
-        """
-        return import_mdr.load(context)
                        
     def draw(self, context):
         pass

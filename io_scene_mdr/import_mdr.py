@@ -27,7 +27,58 @@ This script imports a Combat Mssion MDR files to Blender.
 Usage:
 Run this script from "File->Import" menu and then load the desired MDR file.
 """
+import bpy
+import os
+from bpy_extras.io_utils import unpack_list
+from .mdr import MDR
 
 
-def load(context):
+def load(context, filepath):
+    print(filepath)
+    base_name = os.path.splitext(os.path.basename(filepath))[0]
+    outdir = ""
+    m = MDR(filepath, base_name, outdir, False, False)
+
+    new_objects = [] # put new objects here
+
+    for mdr_ob in m.objects:
+        print(mdr_ob.name)
+        verts_loc = mdr_ob.vertex_array
+        faces = mdr_ob.index_array
+        me = bpy.data.meshes.new(mdr_ob.name)
+
+        me.vertices.add(len(verts_loc))
+        me.loops.add(len(faces)*3)
+        me.polygons.add(len(faces))
+
+        # verts_loc is a list of (x, y, z) tuples
+        me.vertices.foreach_set("co", unpack_list(verts_loc))
+        loops_vert_idx = []
+        faces_loop_start = []
+        faces_loop_total = []
+        lidx = 0
+        for f in faces:
+            vidx = list(f)
+            nbr_vidx = len(vidx)
+            loops_vert_idx.extend(vidx)
+            faces_loop_start.append(lidx)
+            faces_loop_total.append(nbr_vidx)
+            lidx += nbr_vidx
+
+        me.loops.foreach_set("vertex_index", loops_vert_idx)
+        me.polygons.foreach_set("loop_start", faces_loop_start)
+        me.polygons.foreach_set("loop_total", faces_loop_total)
+
+        me.validate(clean_customdata=False)  # *Very* important to not remove lnors here!
+        me.update(calc_tessface=True, calc_edges=True)
+
+        ob = bpy.data.objects.new(me.name, me)
+        new_objects.append(ob)
+
+    for ob,mdr_ob in zip(new_objects, m.objects):
+        # parent objects
+        if ob != new_objects[0]:
+            parent = next((x for x in new_objects if x.name == mdr_ob.parent_name))
+            ob.parent = parent
+        context.scene.objects.link(ob)
     return {'FINISHED'}
