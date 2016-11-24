@@ -29,9 +29,10 @@ Run this script from "File->Import" menu and then load the desired MDR file.
 """
 import bpy
 import os
+import math
 from bpy_extras.io_utils import unpack_list
 from bpy_extras.image_utils import load_image
-from mathutils import Matrix 
+from mathutils import Matrix
 from .mdr import MDR
 
 
@@ -41,7 +42,7 @@ def load(context, filepath):
     outdir = ""
     m = MDR(filepath, base_name, outdir, False, False, False)
 
-    new_objects = [] # put new objects here
+    new_objects = []  # put new objects here
 
     for mdr_ob in m.objects:
         print(mdr_ob.name)
@@ -80,9 +81,9 @@ def load(context, filepath):
             for face_uvidx, lidx in zip(face, blen_poly.loop_indices):
                 blen_uvs.data[lidx].uv = mdr_ob.uv_array[0 if (face_uvidx is ...) else face_uvidx]
 
-        #TODO optimize material creation
+        # TODO optimize material creation
         mat = bpy.data.materials.new(me.name)
-        tex = bpy.data.textures.new('DiffuseTex', type = 'IMAGE')
+        tex = bpy.data.textures.new('DiffuseTex', type='IMAGE')
         print("Load texture", mdr_ob.texture_name)
         tex.image = load_image(mdr_ob.texture_name+".bmp", os.path.dirname(filepath))
         if tex.image is None:
@@ -92,11 +93,23 @@ def load(context, filepath):
         mtex.texture_coords = 'UV'
         mtex.use_map_color_diffuse = True
 
+        norm_tex_name = mdr_ob.texture_name + "_normal map.bmp"
+        if os.path.isfile(os.path.join(os.path.dirname(filepath), norm_tex_name)):
+                norm_tex = bpy.data.textures.new('NormalTex', type='IMAGE')
+                norm_tex.image = load_image(norm_tex_name, os.path.dirname(filepath))
+                norm_tex.use_normal_map = True
+                mnorm = mat.texture_slots.add()
+                mnorm.texture = norm_tex
+                mnorm.texture_coords = 'UV'
+                mnorm.use_map_color_diffuse = False
+                mnorm.use_map_normal = True
+                mnorm.normal_factor = 5
+
         ob = bpy.data.objects.new(me.name, me)
         ob.data.materials.append(mat)
         new_objects.append(ob)
 
-    for ob,mdr_ob in zip(new_objects, m.objects):
+    for ob, mdr_ob in zip(new_objects, m.objects):
         # parent objects
         if ob != new_objects[0]:
             parent = next((x for x in new_objects if x.name == mdr_ob.parent_name))
@@ -105,11 +118,11 @@ def load(context, filepath):
             print(anchor)
             name = anchor[0]
             matrix = anchor[1]
-            transform_matrix = [ 4*[0] for i in range(4)]
+            transform_matrix = [4*[0] for i in range(4)]
             for i in range(0, 4):
                 for j in range(0, 3):
                     transform_matrix[j][i] = matrix[i][j]
-            transform_matrix[3][3] = 1.0    
+            transform_matrix[3][3] = 1.0
             m = Matrix(transform_matrix)
             print(m)
             """
