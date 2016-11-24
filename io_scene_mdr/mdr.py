@@ -239,10 +239,11 @@ class MDRObject:
             print("# Memory point count", memory_point_count)
             for i in range(0, memory_point_count):
                 length, = struct.unpack("<H", f.read(2))
-                memory_point_name = f.read(length).decode("ascii")
-                print("# Memory point name:", memory_point_name)
+                anchor_name = f.read(length).decode("ascii")
+                print("# Memory point name:", anchor_name)
                 if length != 0:
-                    read_matrix(f)
+                    m = read_matrix(f)
+                self.anchor_points.append((anchor_name, m))
                 print("#End of sub-meta", "0x%x" % f.tell())
             for i in range(int(0x68 / 4)):
                 print(struct.unpack("f", f.read(4)))
