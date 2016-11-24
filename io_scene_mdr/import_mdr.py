@@ -125,12 +125,16 @@ def load(context, filepath):
             transform_matrix[3][3] = 1.0
             m = Matrix(transform_matrix)
             print(m)
-            """
-            anchor_ob = bpy.data.objects.new(name, None )
+
+            anchor_ob = bpy.data.objects.new(name, None)
             bpy.context.scene.objects.link(anchor_ob)
             anchor_ob.empty_draw_size = 0.1
             anchor_ob.empty_draw_type = 'SINGLE_ARROW'
             anchor_ob.matrix_world = m
-            """
+            anchor_ob.matrix_local *= Matrix.Rotation(math.radians(90), 4, "Y")
+
+            print(ob, anchor_ob)
+            anchor_ob.parent = ob
+
         context.scene.objects.link(ob)
     return {'FINISHED'}
