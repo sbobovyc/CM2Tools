@@ -83,6 +83,11 @@ def load(context, filepath):
 
         # TODO optimize material creation
         mat = bpy.data.materials.new(me.name)
+        mat.diffuse_intensity = 1.0
+        mat.specular_intensity = 0.0
+        mat.use_transparency = True
+        mat.transparency_method = "Z_TRANSPARENCY"
+        mat.alpha = 0.0
         tex = bpy.data.textures.new('DiffuseTex', type='IMAGE')
         print("Load texture", mdr_ob.texture_name)
         tex.image = load_image(mdr_ob.texture_name+".bmp", os.path.dirname(filepath))
@@ -92,6 +97,7 @@ def load(context, filepath):
         mtex.texture = tex
         mtex.texture_coords = 'UV'
         mtex.use_map_color_diffuse = True
+        mtex.use_map_alpha = True
 
         norm_tex_name = mdr_ob.texture_name + "_normal map.bmp"
         if os.path.isfile(os.path.join(os.path.dirname(filepath), norm_tex_name)):
