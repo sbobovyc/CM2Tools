@@ -90,9 +90,20 @@ def load(context, filepath):
         mat.alpha = 0.0
         tex = bpy.data.textures.new('DiffuseTex', type='IMAGE')
         print("Load texture", mdr_ob.texture_name)
-        tex.image = load_image(mdr_ob.texture_name+".bmp", os.path.dirname(filepath))
-        if tex.image is None:
+        img_found = False
+        for im in bpy.data.images:
+            if im.name == mdr_ob.texture_name+".bmp":
+                image = im
+                img_found = True
+        if not img_found:
+            image = load_image(mdr_ob.texture_name+".bmp", os.path.dirname(filepath))
+
+        if image is not None:
+            tex.image = image
+        else:
             print("Could not load", mdr_ob.texture_name)
+            mat.use_transparency = False
+
         mtex = mat.texture_slots.add()
         mtex.texture = tex
         mtex.texture_coords = 'UV'
@@ -111,6 +122,7 @@ def load(context, filepath):
                 mnorm.use_map_normal = True
                 mnorm.normal_factor = 5
 
+        print(mdr_ob.material)
         ob = bpy.data.objects.new(me.name, me)
         ob.data.materials.append(mat)
         new_objects.append(ob)
