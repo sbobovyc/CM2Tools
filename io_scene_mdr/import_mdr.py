@@ -97,6 +97,10 @@ def load(context, filepath):
                 img_found = True
         if not img_found:
             image = load_image(mdr_ob.texture_name+".bmp", os.path.dirname(filepath))
+            # if texture file is not found, recursively scan parent dir
+            if image is None:
+                parent_dir = os.path.dirname(os.path.dirname(filepath))
+                image = load_image(mdr_ob.texture_name+".bmp", parent_dir, recursive=True)
 
         if image is not None:
             tex.image = image
