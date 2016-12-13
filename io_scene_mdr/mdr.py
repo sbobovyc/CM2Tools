@@ -245,8 +245,14 @@ class MDRObject:
                     m = read_matrix(f)
                 self.anchor_points.append((anchor_name, m))
                 print("#End of sub-meta", "0x%x" % f.tell())
+            # possible material info?
+            unk = []
             for i in range(int(0x68 / 4)):
-                print(struct.unpack("f", f.read(4)))
+                unk.append(*struct.unpack("f", f.read(4)))
+                print("0x%x %f" % (f.tell()-4, unk[-1]))
+            print("Alpha %f" % unk[-1])
+            self.material = {}
+            self.material["alpha_constant"] = unk[-1]
             print("# Unknown meta finished", "0x%x" % f.tell())
 
         unk, = struct.unpack("<I", f.read(4))
