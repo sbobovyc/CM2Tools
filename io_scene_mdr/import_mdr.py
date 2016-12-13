@@ -113,6 +113,12 @@ def load(context, filepath):
         mtex.texture_coords = 'UV'
         mtex.use_map_color_diffuse = True
         mtex.use_map_alpha = True
+        if "alpha_constant" in mdr_ob.material:
+            alpha_const = mdr_ob.material["alpha_constant"]
+        else:
+            alpha_const = 1.0
+        print("Alpha const", alpha_const)
+        mtex.alpha_factor = alpha_const
 
         norm_tex_name = mdr_ob.texture_name + "_normal map.bmp"
         if os.path.isfile(os.path.join(os.path.dirname(filepath), norm_tex_name)):
