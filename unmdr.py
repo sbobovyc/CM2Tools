@@ -76,7 +76,7 @@ def make_wavefront_mtl(mdr_ob):
     """ Create a material definition file."""
     string = ""
     string += "newmtl %s\n" % mdr_ob.name
-    if mdr_ob.material is None:
+    if "ambient_color" not in mdr_ob.material:
         string += "Ka 0.5 0.5 0.5 # gray\n"   # ambient color
         string += "Kd 0.5 0.5 0.5 # gray\n"   # diffuse color
         string += "Ks 0.0 0.0 0.0\n"          # specular color, off
