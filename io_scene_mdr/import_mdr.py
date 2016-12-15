@@ -89,7 +89,7 @@ def load(context, filepath):
         mat.transparency_method = "Z_TRANSPARENCY"
         mat.alpha = 0.0
         tex = bpy.data.textures.new('DiffuseTex', type='IMAGE')
-        print("Load texture", mdr_ob.texture_name)
+        print("Load diffuse texture", mdr_ob.texture_name)
         img_found = False
         for im in bpy.data.images:
             if im.name == mdr_ob.texture_name+".bmp":
@@ -121,9 +121,19 @@ def load(context, filepath):
         mtex.alpha_factor = alpha_const
 
         norm_tex_name = mdr_ob.texture_name + "_normal map.bmp"
-        if os.path.isfile(os.path.join(os.path.dirname(filepath), norm_tex_name)):
+        norm_tex_path = os.path.join(os.path.dirname(filepath), norm_tex_name)
+        if os.path.isfile(norm_tex_path):
+                print("Load normal texture", norm_tex_name)
                 norm_tex = bpy.data.textures.new('NormalTex', type='IMAGE')
-                norm_tex.image = load_image(norm_tex_name, os.path.dirname(filepath))
+                img_found = False
+                for im in bpy.data.images:
+                    if im.name == norm_tex_name:
+                        image = im
+                        img_found = True
+                if not img_found:
+                    image = load_image(norm_tex_name, os.path.dirname(filepath))
+                #TODO recursively scan for normal texture
+                norm_tex.image = image
                 norm_tex.use_normal_map = True
                 mnorm = mat.texture_slots.add()
                 mnorm.texture = norm_tex
