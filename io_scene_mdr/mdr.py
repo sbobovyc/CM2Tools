@@ -143,10 +143,11 @@ class MDRObject:
         self.name = f.read(name_length).decode("ascii")
         print("# submodel name:", self.name)
 
-        unk, = struct.unpack("b", f.read(1))
-        print("# Read unknown byte (always 2?):", unk)
-        if unk != 2:
-            error_message = "Unknown is not 2"
+        unk0, = struct.unpack("b", f.read(1))
+        print("# Read unknown byte (always 2?):", unk0)
+        if unk0 != 2:
+            error_message = "unk0 is %s, not 2, 0x%x %s, %s, %s" % (
+            unk0, f.tell() - 1, base_name, self.name, model_number)
             # raise ValueError(error_message)
             print(error_message)
         print("# Start unknown section", "0x%x" % f.tell())
@@ -198,12 +199,13 @@ class MDRObject:
             read_material(f)
 
             print("# End unknown section", "0x%x" % f.tell())
-            unk, = struct.unpack("<I", f.read(4))
-            print("# Read 4 bytes (always 0?)", unk)
-            if unk != 0:
-                error_message = "Unknown is not 0"
-                raise ValueError(error_message)
-                # print(error_message)
+            unk1, = struct.unpack("<I", f.read(4))
+            print("# Read 4 bytes (always 0?)", unk1)
+            if unk1 != 0:
+                error_message = error_message = "unk1 is %s, not 0, 0x%x %s, %s, %s" % (
+                unk1, f.tell() - 4, base_name, self.name, model_number)
+                # raise ValueError(error_message)
+                print(error_message)
 
             object_count, = struct.unpack("<I", f.read(4))
             print("# Read 4 bytes, object count: ", object_count)
@@ -214,11 +216,11 @@ class MDRObject:
                 print("Anchor point %i: %s" % (i, anchor_name))
                 m = read_matrix(f)
                 self.anchor_points.append((anchor_name, m))
+            print("# End list of anchor points", "0x%x" % f.tell())
             f.read(2)  # always 0
             print("# random garbage? ", "0x%x" % f.tell())
             # unk = struct.unpack("f"*12, f.read(48))
             read_material(f)
-            print("# unknown", unk)
             f.read(2)  # always 0
             meta1_offset = f.tell()
             meta1 = read_material(f)
@@ -227,7 +229,6 @@ class MDRObject:
             manifest[u'material'] = []
             manifest[u'material'].append(({u'offset': meta1_offset}, meta1))
             print("# Unknown float", struct.unpack("f", f.read(4)))
-            print("# End list of anchor points", "0x%x" % f.tell())
             print("# End unknown", "0x%x" % f.tell())
         else:
             length, = struct.unpack("<xxH", f.read(4))
@@ -255,10 +256,11 @@ class MDRObject:
             self.material["alpha_constant"] = unk[-1]
             print("# Unknown meta finished", "0x%x" % f.tell())
 
-        unk, = struct.unpack("<I", f.read(4))
-        print("# Read 4 bytes (always 0?)", unk)
-        if unk != 0:
-            error_message = "Unknown is not 0"
+        unk2, = struct.unpack("<I", f.read(4))
+        print("# Read 4 bytes (always 0?)", unk2)
+        if unk2 != 0:
+            error_message = error_message = "unk2 is %s, not 0, 0x%x %s, %s, %s" % (
+            unk2, f.tell() - 4, base_name, self.name, model_number)
             # raise ValueError(error_message)
             print(error_message)
 
@@ -268,10 +270,11 @@ class MDRObject:
         if dump:
             self.texture_name = texture_name
 
-        unk, = struct.unpack("b", f.read(1))
-        print("# Read unknown byte (always 2?):", unk)
-        if unk != 2:
-            error_message = "Unknown is not 2"
+        unk3, = struct.unpack("b", f.read(1))
+        print("# Read unknown byte (always 2?):", unk3)
+        if unk3 != 2:
+            error_message = error_message = "unk3 is %s, not 2, 0x%x %s, %s, %s" % (
+            unk3, f.tell() - 1, base_name, self.name, model_number)
             # raise ValueError(error_message)
             print(error_message)
 
