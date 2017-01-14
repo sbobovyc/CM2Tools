@@ -144,12 +144,14 @@ class MDRObject:
         print("# submodel name:", self.name)
 
         unk0, = struct.unpack("b", f.read(1))
-        print("# Read unknown byte (always 2?):", unk0)
         if unk0 != 2:
             error_message = "unk0 is %s, not 2, 0x%x %s, %s, %s" % (
             unk0, f.tell() - 1, base_name, self.name, model_number)
             # raise ValueError(error_message)
             print(error_message)
+        else:
+            print("unk0 is %s (always 2?) 0x%x %s, %s, %s" % (unk0, f.tell() - 1, base_name, self.name, model_number))
+            
         print("# Start unknown section", "0x%x" % f.tell())
         for i in range(0, int(0xB0 / 4)):
             unk, = struct.unpack("f", f.read(4))
@@ -200,12 +202,13 @@ class MDRObject:
 
             print("# End unknown section", "0x%x" % f.tell())
             unk1, = struct.unpack("<I", f.read(4))
-            print("# Read 4 bytes (always 0?)", unk1)
             if unk1 != 0:
                 error_message = error_message = "unk1 is %s, not 0, 0x%x %s, %s, %s" % (
                 unk1, f.tell() - 4, base_name, self.name, model_number)
                 # raise ValueError(error_message)
                 print(error_message)
+            else:
+                print("unk1 is %s (always 0?) 0x%x %s, %s, %s" % (unk1, f.tell() - 1, base_name, self.name, model_number))                    
 
             object_count, = struct.unpack("<I", f.read(4))
             print("# Read 4 bytes, object count: ", object_count)
@@ -256,13 +259,14 @@ class MDRObject:
             self.material["alpha_constant"] = unk[-1]
             print("# Unknown meta finished", "0x%x" % f.tell())
 
-        unk2, = struct.unpack("<I", f.read(4))
-        print("# Read 4 bytes (always 0?)", unk2)
+        unk2, = struct.unpack("<I", f.read(4))        
         if unk2 != 0:
             error_message = error_message = "unk2 is %s, not 0, 0x%x %s, %s, %s" % (
             unk2, f.tell() - 4, base_name, self.name, model_number)
             # raise ValueError(error_message)
             print(error_message)
+        else:
+            print("unk2 is %s (always 0?) 0x%x %s, %s, %s" % (unk2, f.tell() - 4, base_name, self.name, model_number))
 
         name_length, = struct.unpack("<H", f.read(2))
         texture_name = f.read(name_length).decode("ascii")
@@ -271,12 +275,13 @@ class MDRObject:
             self.texture_name = texture_name
 
         unk3, = struct.unpack("b", f.read(1))
-        print("# Read unknown byte (always 2?):", unk3)
         if unk3 != 2:
             error_message = error_message = "unk3 is %s, not 2, 0x%x %s, %s, %s" % (
             unk3, f.tell() - 1, base_name, self.name, model_number)
             # raise ValueError(error_message)
             print(error_message)
+        else:
+            print("unk3 is %s (always 2?) 0x%x %s, %s, %s" % (unk3, f.tell() - 1, base_name, self.name, model_number))
 
         print("# Start unknown section of 176 bytes", "0x%x" % f.tell())
         for i in range(0, int(0xB0 / 4)):
