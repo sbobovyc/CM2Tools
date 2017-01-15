@@ -84,27 +84,44 @@ def read_material(f):
 
 
 class MDR:
-    def __init__(self, filepath, base_name, outdir, dump_manifest=False, parse_only=False, verbose=False):
+    def __init__(self, filepath, base_name, dump_manifest=False, parse_only=False, verbose=False):
         self.filepath = filepath
         self.base_name = base_name
-        self.outdir = outdir
         self.parse_only = parse_only
         self.verbose = verbose
         self.objects = []
         self.model_manifests = []
+        self.dump_manifest = dump_manifest
 
+        #in the binary file
+        self.num_models = 0
+
+    def read(self, outdir):
         with open(self.filepath, "rb") as f:
-            num_models, = struct.unpack("<Ix", f.read(5))
-            print("# number of models", num_models)
-            for i in range(0, num_models):
+            self.num_models, = struct.unpack("<Ix", f.read(5))
+            print("# number of models", self.num_models)
+            for i in range(0, self.num_models):
                 mdr_obj = MDRObject()
-                manifest = mdr_obj.read(self.base_name, num_models, f, i, self.outdir, not self.parse_only, self.verbose)
+                manifest = mdr_obj.read(self.base_name, self.num_models, f, i, outdir, not self.parse_only, self.verbose)
                 self.objects.append(mdr_obj)
                 self.model_manifests.append(manifest)
 
-        if dump_manifest and not self.parse_only:
-            with open(os.path.join(self.outdir, "%s_manifest.json" % self.base_name), "w") as f:
+        if self.dump_manifest and not self.parse_only:
+            with open(os.path.join(outdir, "%s_manifest.json" % self.base_name), "w") as f:
                 json.dump([u'%s' % self.base_name, self.model_manifests], f, indent=4)
+
+    def write(self, filepath):
+        with open(filepath, "wb") as f:
+            self.num_models = len(self.objects)
+            f.write(struct.pack("<Ix", self.num_models))
+            for o in self.objects:
+                f.write(struct.pack("<H", len(o.name)))
+                f.write(struct.pack("%is" % len(o.name), o.name))
+                f.write(struct.pack("b", 2))  # unk0
+                f.write(struct.pack('x'*0xB0))
+                f.write(struct.pack("<I", 3*len(o.index_array)))
+                for idx in o.index_array:
+                    f.write(struct.pack("<HHH", idx[0], idx[1], idx[2]))
 
 
 class MDRObject:

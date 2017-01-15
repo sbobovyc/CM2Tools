@@ -40,7 +40,8 @@ def load(context, filepath):
     print(filepath)
     base_name = os.path.splitext(os.path.basename(filepath))[0]
     outdir = ""
-    m = MDR(filepath, base_name, outdir, False, False, False)
+    m = MDR(filepath, base_name, False, False, False)
+    m.read(outdir)
 
     new_objects = []  # put new objects here
 

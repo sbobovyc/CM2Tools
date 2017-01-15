@@ -110,7 +110,8 @@ if __name__ == "__main__":
     
     print("# ", filepath)
     base_name = os.path.splitext(os.path.basename(filepath))[0]
-    m = MDR(filepath, base_name, args.outdir, args.parse_only, args.parse_only, args.verbose)
+    m = MDR(filepath, base_name, args.parse_only, args.parse_only, args.verbose)
+    m.read(args.outdir)
 
     if not args.parse_only:
         for ob in m.objects:
