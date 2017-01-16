@@ -34,9 +34,6 @@ import struct
 from pprint import pprint
 
 
-def float2unsigned_short(value):
-    return int((value + 1.0) / 2.0 * ((2.0**16)-1))
-
 def print4x4matrix(matrix):
     print("[")
     for row in matrix:
@@ -173,8 +170,7 @@ class MDR:
                     f.write(struct.pack("<fff", vert[0], vert[1], vert[2]))
                 f.write(struct.pack("<I", 3*len(o.vertex_normal_array)))
                 for norm in o.vertex_normal_array:
-                    f.write(struct.pack("<HHH", float2unsigned_short(norm[0]), float2unsigned_short(norm[1]),
-                                        float2unsigned_short(norm[2])))
+                    f.write(struct.pack("<hhh", norm[0], norm[1], norm[2]))
                 f.write(struct.pack("<I", 0))  # no footer
 
                 model_number += 1
@@ -388,9 +384,9 @@ class MDRObject:
             if not dump:
                 f.read(6)
             else:
-                nx, ny, nz = struct.unpack("<HHH", f.read(6))
+                nx, ny, nz = struct.unpack("<hhh", f.read(6))
                 if verbose:
-                    print("# [%i] %i %i %i" % (i, nx, ny, nz))
+                    print("# vn [%i] %i %i %i" % (i, nx, ny, nz))
                 self.vertex_normal_array.append((nx, ny, nz))
         print("# End normals", "0x%x" % f.tell())
         ###############################################

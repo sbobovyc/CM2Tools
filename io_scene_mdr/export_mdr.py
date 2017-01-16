@@ -67,13 +67,14 @@ def save(context, filepath, path_mode='AUTO'):
             for vert in me.vertices:
                 # uv_array.append((uv_layer[vert.index].uv[0], uv_layer[vert.index].uv[1]))
                 vertex_array.append((vert.co[0], vert.co[1], vert.co[2]))
-                vertex_normal_array.append((vert.normal[0], vert.normal[1], vert.normal[2]))
+                norm = (int(vert.normal[0]*(2**15)), int(vert.normal[1]*(2**15)), int(vert.normal[2]*(2**15)))
+                vertex_normal_array.append(norm)
 
             print("Printing loop uv")
             for i, (face, blen_poly) in enumerate(zip(index_array, me.polygons)):
                 blen_uvs = me.uv_layers[0]
                 for face_uvidx, lidx in zip(face, blen_poly.loop_indices):
-                    print(face_uvidx, lidx, blen_uvs.data[lidx], mdr_obj.uv_array)
+                    # print(face_uvidx, lidx, blen_uvs.data[lidx], mdr_obj.uv_array)
                     mdr_obj.uv_array[face_uvidx] = blen_uvs.data[0 if (lidx is ...) else lidx].uv
 
             diffuse_texture = None
