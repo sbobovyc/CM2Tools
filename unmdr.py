@@ -33,6 +33,7 @@ def float2string(f):
 
 def short2float(value):
     return float(value + 2**15) / 2**15 - 1.0
+    #TODO return (value/2.0**16-1) * 2.0 - 1.0
 
 def make_wavefront_obj(mdr_ob):
     """ Serialize mdr to obj format and return it as a string."""

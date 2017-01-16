@@ -57,19 +57,40 @@ def save(context, filepath, path_mode='AUTO'):
             me = ob.data
             for f in me.polygons:
                 index_array.append((f.vertices[0], f.vertices[1], f.vertices[2]))
-                print(index_array)
 
-            uv_layer = me.uv_layers.active.data
-            for poly in me.polygons:
-                print("Polygon", poly.index)
-                for li in poly.loop_indices:
-                    vi = me.loops[li].vertex_index
-                    uv = uv_layer[li].uv
-                    print("Loop index %i (Vertex %i) - UV %f %f" % (li, vi, uv.x, uv.y))
+            uv_layer = me.uv_layers.active.data  #TODO check to see if this exists
 
-            uv_array = []
+            uv_array = [None] * len(me.vertices)
+            mdr_obj.uv_array = uv_array
+            vertex_array = []
+            vertex_normal_array = []
+            for vert in me.vertices:
+                # uv_array.append((uv_layer[vert.index].uv[0], uv_layer[vert.index].uv[1]))
+                vertex_array.append((vert.co[0], vert.co[1], vert.co[2]))
+                vertex_normal_array.append((vert.normal[0], vert.normal[1], vert.normal[2]))
+
+            print("Printing loop uv")
+            for i, (face, blen_poly) in enumerate(zip(index_array, me.polygons)):
+                blen_uvs = me.uv_layers[0]
+                for face_uvidx, lidx in zip(face, blen_poly.loop_indices):
+                    print(face_uvidx, lidx, blen_uvs.data[lidx], mdr_obj.uv_array)
+                    mdr_obj.uv_array[face_uvidx] = blen_uvs.data[0 if (lidx is ...) else lidx].uv
+
+            diffuse_texture = None
+            if me.materials[0].texture_slots[0] is None:
+                raise Exception("Missing a diffuse texture")
+            else:
+                diffuse_texture = me.materials[0].texture_slots[0].texture.image.name
+
+            # strip extension from filenames
+            diffuse_texture_file = os.path.splitext(os.path.splitext(diffuse_texture)[0])[0]
 
             mdr_obj.index_array = index_array
+            mdr_obj.uv_array = uv_array
+            mdr_obj.vertex_array = vertex_array
+            mdr_obj.vertex_normal_array = vertex_normal_array
+            mdr_obj.texture_name = diffuse_texture_file.encode('ascii')
+            mdr_obj.material["alpha_constant"] = ob.material_slots[0].material.alpha
 
             m.objects.append(mdr_obj)
 

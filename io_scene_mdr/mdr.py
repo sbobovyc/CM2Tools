@@ -33,6 +33,10 @@ import json
 import struct
 from pprint import pprint
 
+
+def float2unsigned_short(value):
+    return int((value + 1.0) / 2.0 * ((2.0**16)-1))
+
 def print4x4matrix(matrix):
     print("[")
     for row in matrix:
@@ -114,14 +118,67 @@ class MDR:
         with open(filepath, "wb") as f:
             self.num_models = len(self.objects)
             f.write(struct.pack("<Ix", self.num_models))
+            model_number = 0
             for o in self.objects:
                 f.write(struct.pack("<H", len(o.name)))
                 f.write(struct.pack("%is" % len(o.name), o.name))
                 f.write(struct.pack("b", 2))  # unk0
-                f.write(struct.pack('x'*0xB0))
+                f.write(struct.pack('x' * 0xB0))
                 f.write(struct.pack("<I", 3*len(o.index_array)))
                 for idx in o.index_array:
                     f.write(struct.pack("<HHH", idx[0], idx[1], idx[2]))
+                f.write(struct.pack("<I", 2*len(o.uv_array)))
+                for uv in o.uv_array:
+                    f.write(struct.pack("<ff", uv[0], uv[1]))
+                f.write(struct.pack('xxxx'))  # some unknown
+                if model_number == 0:
+                    # read_material
+                    f.write(struct.pack("ff", 0, 1.0))
+                    f.write(struct.pack("fff", 0, 0, 0))
+                    f.write(struct.pack("fff", 1.0, 0, 0))
+                    f.write(struct.pack("fff", 0, 1.0, 0))
+                    f.write(struct.pack("f", 0))
+
+                    # read_material
+                    f.write(struct.pack("ff", 0, 1.0))
+                    f.write(struct.pack("fff", 0, 0, 0))
+                    f.write(struct.pack("fff", 1.0, 0, 0))
+                    f.write(struct.pack("fff", 0, 1.0, 0))
+                    f.write(struct.pack("f", 0))
+
+                    f.write(struct.pack("<I", 0))  # unk1
+                    f.write(struct.pack("<I", len(o.anchor_points))) # for now do not support anchor points
+                    f.write(struct.pack('xx'))  # 2 bytes padding
+                    f.write(struct.pack(48 * 'x'))  # read_material
+                    f.write(struct.pack('xx'))  # 2 bytes padding
+
+                    # read_material
+                    f.write(struct.pack("ff", 0, 0))
+                    f.write(struct.pack("fff", 1.0, 1.0, 1.0))
+                    f.write(struct.pack("fff", 1.0, 1.0, 1.0))
+                    f.write(struct.pack("fff", 0, 0.0, 0))
+                    f.write(struct.pack("f", 12.8))
+
+                    f.write(struct.pack("f", 1.0))  # unknown float
+                else:
+                    pass
+
+                f.write(struct.pack("<I", 0))  # unk2
+                f.write(struct.pack("<H", len(o.texture_name)))
+                f.write(struct.pack("%is" % len(o.texture_name), o.texture_name))
+                f.write(struct.pack("b", 2))  # unk3
+                f.write(struct.pack('x' * 0xB0))
+                f.write(struct.pack("<I", 3*len(o.vertex_array)))
+                for vert in o.vertex_array:
+                    f.write(struct.pack("<fff", vert[0], vert[1], vert[2]))
+                f.write(struct.pack("<I", 3*len(o.vertex_normal_array)))
+                for norm in o.vertex_normal_array:
+                    f.write(struct.pack("<HHH", float2unsigned_short(norm[0]), float2unsigned_short(norm[1]),
+                                        float2unsigned_short(norm[2])))
+                f.write(struct.pack("<I", 0))  # no footer
+
+                model_number += 1
+
 
 
 class MDRObject:
@@ -139,7 +196,7 @@ class MDRObject:
         self.vertex_array = []  # [ (f,f,f) ...]
         self.vertex_normal_array = []  # [ (i16,i16,i16) ...]
         self.texture_name = ""
-        self.material = None
+        self.material = {}
         self.anchor_points = []  # [ (name, matrix) ...]
 
     def read(self, base_name, num_models, f, model_number, outdir, dump=True, verbose=False):
@@ -177,7 +234,7 @@ class MDRObject:
         print("# Finished unknown section", "0x%x" % f.tell())
 
         ###############################################
-        print("# Start face vertex indices")
+        print("# Start face vertex indices at 0x%x" % f.tell())
         face_count, = struct.unpack("<I", f.read(4))
         print("# Face count:", face_count / 3)
         manifest = {u'model': base_name, u'sub_model': self.name, u'vertex_index_offset': f.tell()}
@@ -193,7 +250,7 @@ class MDRObject:
         ###############################################
 
         ###############################################
-        print("# Start UVs")
+        print("# Start UVs at 0x%x" % f.tell())
         uv_in_section, = struct.unpack("<I", f.read(4))
         print("# UV in section:", uv_in_section / 2)
 
@@ -204,14 +261,15 @@ class MDRObject:
                 f.read(8)
             else:
                 u, v = struct.unpack("<ff", f.read(8))
-                # print("vt", u,v)
                 self.uv_array.append((u, v))
+                if verbose:
+                    print("# vt", i, u,v)
         print("# Finish UV section:", "0x%x" % f.tell())
         ###############################################
 
         print("# Start unknown section 1")
         unk, = struct.unpack("<I", f.read(4))
-        print("# Unknown 0x%x" % unk, "at 0x%x" % f.tell())
+        print("# Unknown 0x%x" % unk, "at 0x%x" % (f.tell()-4))
 
         if model_number == 0:
             read_material(f)
@@ -227,10 +285,10 @@ class MDRObject:
             else:
                 print("unk1 is %s (always 0?) 0x%x %s, %s, %s" % (unk1, f.tell() - 1, base_name, self.name, model_number))                    
 
-            object_count, = struct.unpack("<I", f.read(4))
-            print("# Read 4 bytes, object count: ", object_count)
+            anchor_point_count, = struct.unpack("<I", f.read(4))
+            print("# Read 4 bytes, object count: ", anchor_point_count)
 
-            for i in range(0, object_count):
+            for i in range(0, anchor_point_count):
                 name_length, = struct.unpack("<H", f.read(2))
                 anchor_name = f.read(name_length).decode("ascii")
                 print("Anchor point %i: %s" % (i, anchor_name))
@@ -256,9 +314,9 @@ class MDRObject:
             print("# parent name:", self.parent_name, hex(f.tell()))
             read_material(f)
             read_material(f)
-            memory_point_count, = struct.unpack("<I", f.read(4))
-            print("# Memory point count", memory_point_count)
-            for i in range(0, memory_point_count):
+            anchor_point_count, = struct.unpack("<I", f.read(4))
+            print("# Memory point count", anchor_point_count)
+            for i in range(0, anchor_point_count):
                 length, = struct.unpack("<H", f.read(2))
                 anchor_name = f.read(length).decode("ascii")
                 print("# Memory point name:", anchor_name)
@@ -272,7 +330,6 @@ class MDRObject:
                 unk.append(*struct.unpack("f", f.read(4)))
                 print("0x%x %f" % (f.tell()-4, unk[-1]))
             print("Alpha %f" % unk[-1])
-            self.material = {}
             self.material["alpha_constant"] = unk[-1]
             print("# Unknown meta finished", "0x%x" % f.tell())
 
@@ -308,7 +365,7 @@ class MDRObject:
         print("# Finished unknown section", "0x%x" % f.tell())
 
         ###############################################
-        print("# Start vertices")
+        print("# Start vertices at 0x%x" % f.tell())
         vertex_floats, = struct.unpack("<I", f.read(4))
         print("# Vertex count:", vertex_floats / 3)
         manifest[u'vertex_offset'] = f.tell()
@@ -322,7 +379,7 @@ class MDRObject:
         print("# End vertices", "0x%x" % f.tell())
         ###############################################
 
-        print("# Start vertex normals")
+        print("# Start vertex normals at 0x%x" % f.tell())
         normal_count, = struct.unpack("<I", f.read(4))
         print("# Normals count:", normal_count / 3)  # 3 per vertex
         manifest[u'vertex_normals_offset'] = f.tell()
