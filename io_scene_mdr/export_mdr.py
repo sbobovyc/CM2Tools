@@ -67,7 +67,7 @@ def save(context, filepath, path_mode='AUTO'):
             for vert in me.vertices:
                 # uv_array.append((uv_layer[vert.index].uv[0], uv_layer[vert.index].uv[1]))
                 vertex_array.append((vert.co[0], vert.co[1], vert.co[2]))
-                norm = (int(vert.normal[0]*(2**15)), int(vert.normal[1]*(2**15)), int(vert.normal[2]*(2**15)))
+                norm = (int(vert.normal[0]*(2**15 - 1)), int(vert.normal[1]*(2**15 - 1)), int(vert.normal[2]*(2**15 - 1)))
                 vertex_normal_array.append(norm)
 
             print("Printing loop uv")
