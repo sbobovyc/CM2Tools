@@ -72,12 +72,20 @@ def save(context, filepath, path_mode='AUTO'):
                 norm = (int(vert.normal[0]*(2**15 - 1)), int(vert.normal[1]*(2**15 - 1)), int(vert.normal[2]*(2**15 - 1)))
                 vertex_normal_array.append(norm)
 
-            print("Printing loop uv")
-            for i, (face, blen_poly) in enumerate(zip(index_array, me.polygons)):
-                blen_uvs = me.uv_layers[0]
-                for face_uvidx, lidx in zip(face, blen_poly.loop_indices):
-                    # print(face_uvidx, lidx, blen_uvs.data[lidx], mdr_obj.uv_array)
-                    mdr_obj.uv_array[face_uvidx] = blen_uvs.data[0 if (lidx is ...) else lidx].uv
+            # for i, (face, blen_poly) in enumerate(zip(index_array, me.polygons)):
+            #     blen_uvs = me.uv_layers[0]
+            #     for face_uvidx, lidx in zip(face, blen_poly.loop_indices):
+            #         # print(face_uvidx, lidx, blen_uvs.data[lidx], mdr_obj.uv_array)
+            #         mdr_obj.uv_array[face_uvidx] = blen_uvs.data[0 if (lidx is ...) else lidx].uv
+            for poly in me.polygons:
+                # print("Polygon", poly.index)
+                for li in poly.loop_indices:
+                    vi = me.loops[li].vertex_index
+                    uv = uv_layer[li].uv
+                    # print("    Loop index %i (Vertex %i) - UV %f %f" % (li, vi, uv.x, uv.y))
+                    mdr_obj.uv_array[vi] = uv
+            # for i in range(0, len(mdr_obj.uv_array)):
+            #     print(i, mdr_obj.uv_array[i])
 
             diffuse_texture = None
             if me.materials[0].texture_slots[0] is None:
@@ -95,6 +103,9 @@ def save(context, filepath, path_mode='AUTO'):
             mdr_obj.texture_name = diffuse_texture_file.encode('ascii')
             mdr_obj.material["alpha_constant"] = ob.material_slots[0].material.alpha
 
+            print("Exporting %i faces" % len(mdr_obj.index_array))
+            print("Exporting %i texture coords" % len(mdr_obj.uv_array))
+            print("Exporting %i vertices" % len(mdr_obj.vertex_array))
             m.objects.append(mdr_obj)
 
     m.write(filepath)
