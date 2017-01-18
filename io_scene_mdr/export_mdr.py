@@ -46,6 +46,7 @@ def save(context, filepath, path_mode='AUTO'):
 
     for ob in ob_list:
         print(ob.name, ob.type, ob.parent)
+        matrix_world = ob.matrix_basis  # world matrix so we can transform from local to global coordinates
         if ob.type == 'EMPTY':
             print(ob.matrix_world)
         if ob.type == 'MESH':
@@ -66,7 +67,8 @@ def save(context, filepath, path_mode='AUTO'):
             vertex_normal_array = []
             for vert in me.vertices:
                 # uv_array.append((uv_layer[vert.index].uv[0], uv_layer[vert.index].uv[1]))
-                vertex_array.append((vert.co[0], vert.co[1], vert.co[2]))
+                x,y,z = matrix_world * vert.co.xyz
+                vertex_array.append((x, y, z))
                 norm = (int(vert.normal[0]*(2**15 - 1)), int(vert.normal[1]*(2**15 - 1)), int(vert.normal[2]*(2**15 - 1)))
                 vertex_normal_array.append(norm)
 
