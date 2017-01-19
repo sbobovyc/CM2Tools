@@ -144,17 +144,17 @@ class MDR:
                     f.write(struct.pack("f", 0))
 
                     f.write(struct.pack("<I", 0))  # unk1
-                    f.write(struct.pack("<I", len(o.anchor_points))) # for now do not support anchor points
+                    f.write(struct.pack("<I", len(o.anchor_points)))  # for now do not support anchor points
                     f.write(struct.pack('xx'))  # 2 bytes padding
                     f.write(struct.pack(48 * 'x'))  # read_material
                     f.write(struct.pack('xx'))  # 2 bytes padding
 
                     # read_material
                     f.write(struct.pack("ff", 0, 0))
-                    f.write(struct.pack("fff", 1.0, 1.0, 1.0))
-                    f.write(struct.pack("fff", 1.0, 1.0, 1.0))
-                    f.write(struct.pack("fff", 0, 0.0, 0))
-                    f.write(struct.pack("f", 12.8))
+                    f.write(struct.pack("fff", 1.0, 1.0, 1.0))  # ambient color is hard coded to white
+                    f.write(struct.pack("fff", *o.material["diffuse_color"]))
+                    f.write(struct.pack("fff", *o.material["specular_color"]))
+                    f.write(struct.pack("f", 12.8))  # hard coded specular exponent
 
                     f.write(struct.pack("f", 1.0))  # unknown float
                 else:
@@ -292,16 +292,13 @@ class MDRObject:
                 self.anchor_points.append((anchor_name, m))
             print("# End list of anchor points", "0x%x" % f.tell())
             f.read(2)  # always 0
-            print("# random garbage? ", "0x%x" % f.tell())
-            # unk = struct.unpack("f"*12, f.read(48))
-            read_material(f)
+            print("# random garbage? ", "0x%x" % f.tell())        
+            read_material(f) # this is for sure model wide material
             f.read(2)  # always 0
             meta1_offset = f.tell()
-            meta1 = read_material(f)
-            if dump:
-                self.material = meta1
+            self.material = read_material(f)
             manifest[u'material'] = []
-            manifest[u'material'].append(({u'offset': meta1_offset}, meta1))
+            manifest[u'material'].append(({u'offset': meta1_offset}, self.material))
             print("# Unknown float", struct.unpack("f", f.read(4)))
             print("# End unknown", "0x%x" % f.tell())
         else:

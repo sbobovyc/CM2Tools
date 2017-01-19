@@ -101,6 +101,8 @@ def save(context, filepath, var_float=1.0, path_mode='AUTO'):
             mdr_obj.vertex_array = vertex_array
             mdr_obj.vertex_normal_array = vertex_normal_array
             mdr_obj.texture_name = diffuse_texture_file.encode('ascii')
+            mdr_obj.material["diffuse_color"] = tuple(ob.material_slots[0].material.diffuse_color)
+            mdr_obj.material["specular_color"] = tuple(ob.material_slots[0].material.specular_color)
             mdr_obj.material["alpha_constant"] = ob.material_slots[0].material.alpha
 
             print("Exporting %i faces" % len(mdr_obj.index_array))

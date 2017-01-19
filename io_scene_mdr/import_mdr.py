@@ -114,6 +114,11 @@ def load(context, filepath):
         mtex.texture_coords = 'UV'
         mtex.use_map_color_diffuse = True
         mtex.use_map_alpha = True
+        print(mdr_ob.material)
+        if "diffuse_color" in mdr_ob.material:
+            mat.diffuse_color = mdr_ob.material["diffuse_color"]
+        if "specular_color" in mdr_ob.material:
+            mat.specular_color = mdr_ob.material["specular_color"]
         if "alpha_constant" in mdr_ob.material:
             alpha_const = mdr_ob.material["alpha_constant"]
         else:
@@ -123,6 +128,7 @@ def load(context, filepath):
 
         norm_tex_name = mdr_ob.texture_name + "_normal map.bmp"
         norm_tex_path = os.path.join(os.path.dirname(filepath), norm_tex_name)
+        print("Looking for", norm_tex_path)
         if os.path.isfile(norm_tex_path):
                 print("Load normal texture", norm_tex_name)
                 norm_tex = bpy.data.textures.new('NormalTex', type='IMAGE')
@@ -143,7 +149,6 @@ def load(context, filepath):
                 mnorm.use_map_normal = True
                 mnorm.normal_factor = 5
 
-        print(mdr_ob.material)
         ob = bpy.data.objects.new(me.name, me)
         ob.data.materials.append(mat)
         new_objects.append(ob)
