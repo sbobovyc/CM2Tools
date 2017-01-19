@@ -68,6 +68,7 @@ class ImportMDR(bpy.types.Operator, ImportHelper, IOOBJOrientationHelper):
             default="*.mdr",
             options={'HIDDEN'},
             )
+
     """
     use_edges = BoolProperty(
             name="Lines",
@@ -189,7 +190,13 @@ class ExportMDR(bpy.types.Operator, ExportHelper, IOOBJOrientationHelper):
             default="*.mdr",
             options={'HIDDEN'},
             )
-
+    var_float = FloatProperty(
+            name="Variable float",
+            description="Variable float for testing",
+            min=0.0, max=1000.0,
+            soft_min=0.0, soft_max=1.0,
+            default=1.0,
+            )    
     # # context group
     # use_selection = BoolProperty(
     #         name="Selection Only",

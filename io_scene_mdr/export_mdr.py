@@ -32,7 +32,7 @@ import os
 from .mdr import MDR, MDRObject
 
 
-def save(context, filepath, path_mode='AUTO'):
+def save(context, filepath, var_float=1.0, path_mode='AUTO'):
     print("Exporting", filepath, path_mode)
     base_name = os.path.splitext(os.path.basename(filepath))[0]
     m = MDR(filepath, base_name, False, False, False)
@@ -106,6 +106,7 @@ def save(context, filepath, path_mode='AUTO'):
             print("Exporting %i faces" % len(mdr_obj.index_array))
             print("Exporting %i texture coords" % len(mdr_obj.uv_array))
             print("Exporting %i vertices" % len(mdr_obj.vertex_array))
+            mdr_obj.var_float = var_float
             m.objects.append(mdr_obj)
 
     m.write(filepath)
