@@ -29,6 +29,8 @@ Run this script from "File->Export" menu.
 """
 import bpy
 import os
+import math
+from mathutils import Matrix
 from .mdr import MDR, MDRObject
 
 
@@ -49,6 +51,11 @@ def save(context, filepath, var_float=1.0, path_mode='AUTO'):
         matrix_world = ob.matrix_basis  # world matrix so we can transform from local to global coordinates
         if ob.type == 'EMPTY':
             print(ob.matrix_world)
+            print(ob.matrix_local)
+            achor_matrix = ob.matrix_local * Matrix.Rotation(math.radians(-90), 4, "Y")
+            print(achor_matrix)
+            print(Matrix.transposed(achor_matrix))
+            m.objects[0].anchor_points.append((ob.name.encode('ascii'), Matrix.transposed(achor_matrix)))
         if ob.type == 'MESH':
             mdr_obj = MDRObject()
             mdr_obj.name = ob.name.encode('ascii')

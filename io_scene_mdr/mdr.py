@@ -145,6 +145,14 @@ class MDR:
 
                     f.write(struct.pack("<I", 0))  # unk1
                     f.write(struct.pack("<I", len(o.anchor_points)))  # for now do not support anchor points
+                    for anchor in o.anchor_points:
+                        name, m = anchor
+                        f.write(struct.pack("<H", len(name)))
+                        f.write(struct.pack("%is" % len(name), name))
+                        f.write(struct.pack("fff", *m[0][:3]))
+                        f.write(struct.pack("fff", *m[1][:3]))
+                        f.write(struct.pack("fff", *m[2][:3]))
+                        f.write(struct.pack("fff", *m[3][:3]))
                     f.write(struct.pack('xx'))  # 2 bytes padding
                     f.write(struct.pack(48 * 'x'))  # read_material
                     f.write(struct.pack('xx'))  # 2 bytes padding
