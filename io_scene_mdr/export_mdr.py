@@ -47,19 +47,23 @@ def save(context, filepath, var_float=1.0, path_mode='AUTO'):
     ob_list = [root_ob] + list(root_ob.children)
 
     for ob in ob_list:
-        print(ob.name, ob.type, ob.parent)
+        print(type(ob), ob.name, ob.type, ob.parent)
         matrix_world = ob.matrix_basis  # world matrix so we can transform from local to global coordinates
-        if ob.type == 'EMPTY':
-            print(ob.matrix_world)
-            print(ob.matrix_local)
-            achor_matrix = ob.matrix_local * Matrix.Rotation(math.radians(-90), 4, "Y")
-            print(achor_matrix)
-            print(Matrix.transposed(achor_matrix))
-            m.objects[0].anchor_points.append((ob.name.encode('ascii'), Matrix.transposed(achor_matrix)))
         if ob.type == 'MESH':
             mdr_obj = MDRObject()
             mdr_obj.name = ob.name.encode('ascii')
+            if ob.parent is not None:
+                mdr_obj.parent_name = ob.parent.name.encode('ascii')
             mdr_obj.index_array = None
+
+            for c in ob.children:
+                print("Checking children", c, c.type)
+                if c.type == 'EMPTY':
+                    # print(c.name, c.matrix_world)
+                    achor_matrix = c.matrix_world * Matrix.Rotation(math.radians(-90), 4, "Y")
+                    # print(achor_matrix)
+                    print(c.name, Matrix.transposed(achor_matrix))
+                    mdr_obj.anchor_points.append((c.name.encode('ascii'), Matrix.transposed(achor_matrix)))
 
             index_array = []
             me = ob.data
@@ -110,7 +114,7 @@ def save(context, filepath, var_float=1.0, path_mode='AUTO'):
             mdr_obj.texture_name = diffuse_texture_file.encode('ascii')
             mdr_obj.material["diffuse_color"] = tuple(ob.material_slots[0].material.diffuse_color)
             mdr_obj.material["specular_color"] = tuple(ob.material_slots[0].material.specular_color)
-            mdr_obj.material["alpha_constant"] = ob.material_slots[0].material.alpha
+            mdr_obj.material["alpha_constant"] = me.materials[0].texture_slots[0].alpha_factor
 
             print("Exporting %i faces" % len(mdr_obj.index_array))
             print("Exporting %i texture coords" % len(mdr_obj.uv_array))

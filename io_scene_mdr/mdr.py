@@ -144,7 +144,7 @@ class MDR:
                     f.write(struct.pack("f", 0))
 
                     f.write(struct.pack("<I", 0))  # unk1
-                    f.write(struct.pack("<I", len(o.anchor_points)))  # for now do not support anchor points
+                    f.write(struct.pack("<I", len(o.anchor_points)))
                     for anchor in o.anchor_points:
                         name, m = anchor
                         f.write(struct.pack("<H", len(name)))
@@ -166,7 +166,41 @@ class MDR:
 
                     f.write(struct.pack("f", 1.0))  # unknown float
                 else:
-                    pass
+                    f.write(struct.pack("<xxH", len(o.parent_name)))
+                    f.write(struct.pack("%is" % len(o.parent_name), o.parent_name))
+
+                    # read_material
+                    f.write(struct.pack("ff", 0, 1.0))
+                    f.write(struct.pack("fff", 0, 0, 0))
+                    f.write(struct.pack("fff", 1.0, 0, 0))
+                    f.write(struct.pack("fff", 0, 1.0, 0))
+                    f.write(struct.pack("f", 0))
+
+                    # read_material
+                    f.write(struct.pack("ff", 0, 1.0))
+                    f.write(struct.pack("fff", 0, 0, 0))
+                    f.write(struct.pack("fff", 1.0, 0, 0))
+                    f.write(struct.pack("fff", 0, 1.0, 0))
+                    f.write(struct.pack("f", 0))
+
+                    f.write(struct.pack("<I", len(o.anchor_points)))
+                    for anchor in o.anchor_points:
+                        name, m = anchor
+                        f.write(struct.pack("<H", len(name)))
+                        f.write(struct.pack("%is" % len(name), name))
+                        f.write(struct.pack("fff", *m[0][:3]))
+                        f.write(struct.pack("fff", *m[1][:3]))
+                        f.write(struct.pack("fff", *m[2][:3]))
+                        f.write(struct.pack("fff", *m[3][:3]))
+
+                    # some unknown, probably actual material info
+                    for i in range(0, 15):
+                        f.write(struct.pack("f", 0.0))
+                    f.write(struct.pack("fff", 1.0, 1.0, 1.0))
+                    f.write(struct.pack("fff", 1.0, 1.0, 1.0))
+                    f.write(struct.pack("fff", 0.25, 0.25, 0.25))
+                    f.write(struct.pack("f", 128.0))
+                    f.write(struct.pack("f", o.material["alpha_constant"]))
 
                 f.write(struct.pack("<I", 0))  # unk2
                 f.write(struct.pack("<H", len(o.texture_name)))
@@ -180,6 +214,8 @@ class MDR:
                 for norm in o.vertex_normal_array:
                     f.write(struct.pack("<hhh", norm[0], norm[1], norm[2]))
                 f.write(struct.pack("<I", 0))  # no footer
+                if model_number < self.num_models-1:
+                    f.write(struct.pack('x'))
 
                 model_number += 1
 
@@ -316,7 +352,7 @@ class MDRObject:
             read_material(f)
             read_material(f)
             anchor_point_count, = struct.unpack("<I", f.read(4))
-            print("# Memory point count", anchor_point_count)
+            print("# Anchor point count", anchor_point_count)
             for i in range(0, anchor_point_count):
                 length, = struct.unpack("<H", f.read(2))
                 anchor_name = f.read(length).decode("ascii")
