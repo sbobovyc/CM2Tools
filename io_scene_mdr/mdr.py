@@ -73,6 +73,8 @@ def read_material(f):
     print("# Specular color", specular_color)
     specular_exponent, = struct.unpack("f", f.read(4))
     print("# Specular exponent", specular_exponent)
+    alpha_constant, = struct.unpack("f", f.read(4))
+    print("# Alpha constant", alpha_constant)
     print("# End material", "0x%x" % f.tell())
 
     material = {}
@@ -81,6 +83,7 @@ def read_material(f):
     material["diffuse_color"] = diffuse_color
     material["specular_color"] = specular_color
     material["specular_exponent"] = specular_exponent
+    material["alpha_constant"] = alpha_constant
     return material
 
 
@@ -163,8 +166,7 @@ class MDR:
                     f.write(struct.pack("fff", *o.material["diffuse_color"]))
                     f.write(struct.pack("fff", *o.material["specular_color"]))
                     f.write(struct.pack("f", 12.8))  # hard coded specular exponent
-
-                    f.write(struct.pack("f", 1.0))  # unknown float
+                    f.write(struct.pack("f", o.material["alpha_constant"]))
                 else:
                     f.write(struct.pack("<xxH", len(o.parent_name)))
                     f.write(struct.pack("%is" % len(o.parent_name), o.parent_name))
@@ -312,8 +314,8 @@ class MDRObject:
         print("# Unknown 0x%x" % unk, "at 0x%x" % (f.tell()-4))
 
         if model_number == 0:
-            read_material(f)
-            read_material(f)
+            read_matrix(f)
+            read_matrix(f)
 
             print("# End unknown section", "0x%x" % f.tell())
             unk1, = struct.unpack("<I", f.read(4))
@@ -336,21 +338,20 @@ class MDRObject:
                 self.anchor_points.append((anchor_name, m))
             print("# End list of anchor points", "0x%x" % f.tell())
             f.read(2)  # always 0
-            print("# random garbage? ", "0x%x" % f.tell())        
-            read_material(f) # this is for sure model wide material
+            print("# random garbage? ", "0x%x" % f.tell())
+            read_matrix(f) # this is for sure model wide material
             f.read(2)  # always 0
             meta1_offset = f.tell()
             self.material = read_material(f)
             manifest[u'material'] = []
             manifest[u'material'].append(({u'offset': meta1_offset}, self.material))
-            print("# Unknown float", struct.unpack("f", f.read(4)))
-            print("# End unknown", "0x%x" % f.tell())
+            print("# End section", "0x%x" % f.tell())
         else:
             length, = struct.unpack("<xxH", f.read(4))
             self.parent_name = f.read(length).decode("ascii")
             print("# parent name:", self.parent_name, hex(f.tell()))
-            read_material(f)
-            read_material(f)
+            read_matrix(f)
+            read_matrix(f)
             anchor_point_count, = struct.unpack("<I", f.read(4))
             print("# Anchor point count", anchor_point_count)
             for i in range(0, anchor_point_count):
@@ -361,14 +362,14 @@ class MDRObject:
                     m = read_matrix(f)
                 self.anchor_points.append((anchor_name, m))
                 print("#End of sub-meta", "0x%x" % f.tell())
-            # possible material info?
+
             unk = []
-            for i in range(int(0x68 / 4)):
+            for i in range(0, 13):
                 unk.append(*struct.unpack("f", f.read(4)))
                 print("0x%x %f" % (f.tell()-4, unk[-1]))
-            print("Alpha %f" % unk[-1])
-            self.material["alpha_constant"] = unk[-1]
-            print("# Unknown meta finished", "0x%x" % f.tell())
+
+            read_material(f)
+            print("# End section", "0x%x" % f.tell())
 
         unk2, = struct.unpack("<I", f.read(4))        
         if unk2 != 0:
