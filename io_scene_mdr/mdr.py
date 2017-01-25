@@ -165,7 +165,7 @@ class MDR:
                     f.write(struct.pack("fff", 1.0, 1.0, 1.0))  # ambient color is hard coded to white
                     f.write(struct.pack("fff", *o.material["diffuse_color"]))
                     f.write(struct.pack("fff", *o.material["specular_color"]))
-                    f.write(struct.pack("f", 12.8))  # hard coded specular exponent
+                    f.write(struct.pack("f", o.material["shininess"]))
                     f.write(struct.pack("f", o.material["alpha_constant"]))
                 else:
                     f.write(struct.pack("<xxH", len(o.parent_name)))
@@ -198,10 +198,10 @@ class MDR:
                     # some unknown, probably actual material info
                     for i in range(0, 15):
                         f.write(struct.pack("f", 0.0))
-                    f.write(struct.pack("fff", 1.0, 1.0, 1.0))
-                    f.write(struct.pack("fff", 1.0, 1.0, 1.0))
-                    f.write(struct.pack("fff", 0.25, 0.25, 0.25))
-                    f.write(struct.pack("f", 128.0))
+                    f.write(struct.pack("fff", 1.0, 1.0, 1.0))  # ambient color is hard coded to white
+                    f.write(struct.pack("fff", *o.material["diffuse_color"]))
+                    f.write(struct.pack("fff", *o.material["specular_color"]))
+                    f.write(struct.pack("f", o.material["shininess"]))
                     f.write(struct.pack("f", o.material["alpha_constant"]))
 
                 f.write(struct.pack("<I", 0))  # unk2

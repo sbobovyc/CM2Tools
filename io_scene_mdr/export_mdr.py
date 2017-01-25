@@ -114,6 +114,7 @@ def save(context, filepath, var_float=1.0, path_mode='AUTO'):
             mdr_obj.texture_name = diffuse_texture_file.encode('ascii')
             mdr_obj.material["diffuse_color"] = tuple(ob.material_slots[0].material.diffuse_color)
             mdr_obj.material["specular_color"] = tuple(ob.material_slots[0].material.specular_color)
+            mdr_obj.material["shininess"] = (ob.material_slots[0].material.specular_hardness / 511.0) * 128.0  # GL_SHININESS is 0 to 128
             mdr_obj.material["alpha_constant"] = me.materials[0].texture_slots[0].alpha_factor
 
             print("Exporting %i faces" % len(mdr_obj.index_array))
