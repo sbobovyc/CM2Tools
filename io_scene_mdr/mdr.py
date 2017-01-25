@@ -66,13 +66,13 @@ def read_material(f):
     unknown_constants = struct.unpack("ff", f.read(8))
     print("# Unknown constants", unknown_constants)
     ambient_color = struct.unpack("fff", f.read(4 * 3))
-    print("# Ambient color", ambient_color)
+    print("# Ambient color", ambient_color)  # GL_AMBIENT
     diffuse_color = struct.unpack("fff", f.read(4 * 3))
-    print("# Diffuse color", diffuse_color)
+    print("# Diffuse color", diffuse_color)  # GL_DIFFUSE
     specular_color = struct.unpack("fff", f.read(4 * 3))
-    print("# Specular color", specular_color)
-    specular_exponent, = struct.unpack("f", f.read(4))
-    print("# Specular exponent", specular_exponent)
+    print("# Specular color", specular_color)  # GL_SPECULAR
+    shininess, = struct.unpack("f", f.read(4))
+    print("# Shininess", shininess)  # GL_SHININESS
     alpha_constant, = struct.unpack("f", f.read(4))
     print("# Alpha constant", alpha_constant)
     print("# End material", "0x%x" % f.tell())
@@ -82,7 +82,7 @@ def read_material(f):
     material["ambient_color"] = ambient_color
     material["diffuse_color"] = diffuse_color
     material["specular_color"] = specular_color
-    material["specular_exponent"] = specular_exponent
+    material["shininess"] = shininess
     material["alpha_constant"] = alpha_constant
     return material
 
