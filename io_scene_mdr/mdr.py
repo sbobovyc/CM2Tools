@@ -368,7 +368,7 @@ class MDRObject:
                 unk.append(*struct.unpack("f", f.read(4)))
                 print("0x%x %f" % (f.tell()-4, unk[-1]))
 
-            read_material(f)
+            self.material = read_material(f)
             print("# End section", "0x%x" % f.tell())
 
         unk2, = struct.unpack("<I", f.read(4))        
