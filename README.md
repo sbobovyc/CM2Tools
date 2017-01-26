@@ -5,16 +5,20 @@ Requirements
  - Python 3
 
 To view the help message of scripts:  
-python brz_magick.py -h
+python3 brz_magick.py -h
 
 To extract a brz file:  
-python brz_magick.py -x my_file.brz
+python3 brz_magick.py -x my_file.brz
+
+To extract a brz file to a specific directory:  
+python3 brz_magick.py -x my_file.brz -o C:\Some\other\path
 
 To compress a directory with files into brz:  
-python brz_magick.py -c mydir
+python3 brz_magick.py -c mydir
 
-To dump mdr file to OBJ and manifest:  
-python unmdr.py crate1.mdr
+To dump mdr file to OBJ:
+python3 unmdr.py crate1.mdr
 
-To mutate mdr file:  
-python mdr_mutator.py crate1_manifest.json --outdir "C:\Users\sbobovyc\Documents\Battlefront\Combat Mission\Black Sea\User Data\Mods"
+To only parse mdr:
+python3 unmdr.py -p crate1.mdr
+

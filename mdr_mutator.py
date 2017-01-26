@@ -56,6 +56,9 @@ if __name__ == "__main__":
     args = parser.parse_args()
     scale = float(args.scale)
 
+    print("This tool is deprecated and should not be used")
+    sys.exit(0)
+
     print(args)
     if args.file is None:
         print("Error, supply a file as parameter")

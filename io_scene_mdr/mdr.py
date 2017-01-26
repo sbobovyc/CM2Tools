@@ -94,8 +94,6 @@ class MDR:
         self.parse_only = parse_only
         self.verbose = verbose
         self.objects = []
-        self.model_manifests = []
-        self.dump_manifest = dump_manifest
 
         #in the binary file
         self.num_models = 0
@@ -106,13 +104,8 @@ class MDR:
             print("# number of models", self.num_models)
             for i in range(0, self.num_models):
                 mdr_obj = MDRObject()
-                manifest = mdr_obj.read(self.base_name, self.num_models, f, i, outdir, not self.parse_only, self.verbose)
+                mdr_obj.read(self.base_name, self.num_models, f, i, outdir, not self.parse_only, self.verbose)
                 self.objects.append(mdr_obj)
-                self.model_manifests.append(manifest)
-
-        if self.dump_manifest and not self.parse_only:
-            with open(os.path.join(outdir, "%s_manifest.json" % self.base_name), "w") as f:
-                json.dump([u'%s' % self.base_name, self.model_manifests], f, indent=4)
 
     def write(self, filepath):
         with open(filepath, "wb") as f:
@@ -279,7 +272,6 @@ class MDRObject:
         print("# Start face vertex indices at 0x%x" % f.tell())
         face_count, = struct.unpack("<I", f.read(4))
         print("# Face count:", face_count / 3)
-        manifest = {u'model': base_name, u'sub_model': self.name, u'vertex_index_offset': f.tell()}
 
         for i in range(0, int(face_count / 3)):
             if not dump:
@@ -295,8 +287,6 @@ class MDRObject:
         print("# Start UVs at 0x%x" % f.tell())
         uv_in_section, = struct.unpack("<I", f.read(4))
         print("# UV in section:", uv_in_section / 2)
-
-        manifest[u'vertex_uv_offset'] = f.tell()
 
         for i in range(0, int(uv_in_section / 2)):
             if not dump:
@@ -343,8 +333,6 @@ class MDRObject:
             f.read(2)  # always 0
             meta1_offset = f.tell()
             self.material = read_material(f)
-            manifest[u'material'] = []
-            manifest[u'material'].append(({u'offset': meta1_offset}, self.material))
             print("# End section", "0x%x" % f.tell())
         else:
             length, = struct.unpack("<xxH", f.read(4))
@@ -406,7 +394,6 @@ class MDRObject:
         print("# Start vertices at 0x%x" % f.tell())
         vertex_floats, = struct.unpack("<I", f.read(4))
         print("# Vertex count:", vertex_floats / 3)
-        manifest[u'vertex_offset'] = f.tell()
 
         for i in range(0, int(vertex_floats / 3)):
             if not dump:
@@ -420,7 +407,6 @@ class MDRObject:
         print("# Start vertex normals at 0x%x" % f.tell())
         normal_count, = struct.unpack("<I", f.read(4))
         print("# Normals count:", normal_count / 3)  # 3 per vertex
-        manifest[u'vertex_normals_offset'] = f.tell()
 
         for i in range(0, int(normal_count / 3)):
             if not dump:
@@ -443,5 +429,3 @@ class MDRObject:
                 f.read(length * 4)
         print("# End model ##############################################################")
         f.read(1)
-
-        return manifest
