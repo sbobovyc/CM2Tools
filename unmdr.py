@@ -1,5 +1,3 @@
-from __future__ import print_function
-
 """@package unmdr
 Documentation for this module. 
 More details.
@@ -32,8 +30,7 @@ def float2string(f):
     return "{0:.12f}".format(f)
 
 def short2float(value):
-    return float(value + 2**15) / 2**15 - 1.0
-    #TODO return (value/2.0**16-1) * 2.0 - 1.0
+    return value / (2.0**15 - 1)
 
 def make_wavefront_obj(mdr_ob):
     """ Serialize mdr to obj format and return it as a string."""
@@ -86,7 +83,7 @@ def make_wavefront_mtl(mdr_ob):
         string += "Ka %f %f %f\n" % (mdr_ob.material["ambient_color"])
         string += "Kd %f %f %f\n" % (mdr_ob.material["diffuse_color"])
         string += "Ks %f %f %f\n" % (mdr_ob.material["specular_color"])
-        string += "Ns %f\n" % (mdr_ob.material["specular_exponent"])
+        string += "Ns %f\n" % (mdr_ob.material["shininess"])
     string += "d 1.0\n"                   # transparency
     string += "illum 1\n"                 # Color on and Ambient on
     string += "map_Kd %s.bmp\n" % mdr_ob.texture_name
