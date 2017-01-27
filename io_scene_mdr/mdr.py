@@ -201,7 +201,8 @@ class MDR:
                 f.write(struct.pack("<H", len(o.texture_name)))
                 f.write(struct.pack("%is" % len(o.texture_name), o.texture_name))
                 f.write(struct.pack("b", 2))  # unk3
-                f.write(struct.pack('x' * 0xB0))
+                f.write(struct.pack("f", 1.0))  # if the next 176 bytes are all 0, the object can not be moved in the editor
+                f.write(struct.pack('x' * 172))
                 f.write(struct.pack("<I", 3*len(o.vertex_array)))
                 for vert in o.vertex_array:
                     f.write(struct.pack("<fff", vert[0], vert[1], vert[2]))
@@ -383,11 +384,11 @@ class MDRObject:
         else:
             print("unk3 is %s (always 2?) 0x%x %s, %s, %s" % (unk3, f.tell() - 1, base_name, self.name, model_number))
 
-        print("# Start unknown section of 176 bytes", "0x%x" % f.tell())
+        print("# Start unknown section of 176 bytes, has something to do with collision box", "0x%x" % f.tell())
         for i in range(0, int(0xB0 / 4)):
             unk, = struct.unpack("f", f.read(4))
             if verbose:
-                print("# [%i] %i" % (i, unk))
+                print("# [%i] %f" % (i, unk))
         print("# Finished unknown section", "0x%x" % f.tell())
 
         ###############################################
