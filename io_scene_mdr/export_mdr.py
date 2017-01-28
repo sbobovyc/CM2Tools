@@ -34,7 +34,11 @@ from mathutils import Matrix
 from .mdr import MDR, MDRObject
 
 
-def save(context, filepath, var_float=1.0, path_mode='AUTO'):
+def save(operator, context, filepath, var_float=1.0, path_mode='AUTO'):
+    if len(bpy.context.selected_objects) == 0:
+        operator.report({'ERROR'}, "You must select a mesh object to export")
+        return {'CANCELLED'}
+
     print("Exporting", filepath, path_mode)
     base_name = os.path.splitext(os.path.basename(filepath))[0]
     m = MDR(filepath, base_name, False, False, False)
@@ -100,9 +104,14 @@ def save(context, filepath, var_float=1.0, path_mode='AUTO'):
 
             diffuse_texture = None
             if me.materials[0].texture_slots[0] is None:
-                raise Exception("Missing a diffuse texture")
+                operator.report({'ERROR'}, "%s object material is missing a texture" % ob.name)
+                return {'CANCELLED'}
             else:
-                diffuse_texture = me.materials[0].texture_slots[0].texture.image.name
+                if me.materials[0].texture_slots[0].texture.image is None:
+                    operator.report({'ERROR'}, "%s object texture slot is missing a texture file" % ob.name)
+                    return {'CANCELLED'}
+                else:
+                    diffuse_texture = me.materials[0].texture_slots[0].texture.image.name
 
             # strip extension from filenames
             diffuse_texture_file = os.path.splitext(os.path.splitext(diffuse_texture)[0])[0]

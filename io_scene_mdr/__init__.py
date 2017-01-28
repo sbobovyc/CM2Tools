@@ -314,7 +314,7 @@ class ExportMDR(bpy.types.Operator, ExportHelper, IOOBJOrientationHelper):
         #                                  ).to_4x4())
         #
         # keywords["global_matrix"] = global_matrix
-        return export_mdr.save(context, **keywords)
+        return export_mdr.save(self, context, **keywords)
 
 
 def menu_func_import(self, context):
