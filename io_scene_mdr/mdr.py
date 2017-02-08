@@ -234,6 +234,12 @@ class MDRObject:
         self.texture_name = ""
         self.material = {}
         self.anchor_points = []  # [ (name, matrix) ...]
+        self.bbox_x_min = 0
+        self.bbox_x_max = 0
+        self.bbox_y_min = 0
+        self.bbox_y_max = 0
+        self.bbox_z_min = 0
+        self.bbox_z_max = 0
 
     def read(self, base_name, num_models, f, model_number, outdir, dump=True, verbose=False):
         ########
@@ -385,10 +391,20 @@ class MDRObject:
             print("unk3 is %s (always 2?) 0x%x %s, %s, %s" % (unk3, f.tell() - 1, base_name, self.name, model_number))
 
         print("# Start unknown section of 176 bytes, has something to do with collision box", "0x%x" % f.tell())
-        for i in range(0, int(0xB0 / 4)):
+        self.collision_data = []
+        for i in range(0, 38):
             unk, = struct.unpack("f", f.read(4))
+            self.collision_data.append(unk)
             if verbose:
                 print("# [%i] %f" % (i, unk))
+        self.bbox_x_min, self.bbox_x_max, self.bbox_y_min, self.bbox_y_max, self.bbox_z_min, self.bbox_z_max = struct.unpack("ffffff", f.read(24))
+        print("# Bound box min/max")
+        print("# xmin ", self.bbox_x_min)
+        print("# xmax ", self.bbox_x_max)
+        print("# ymin ", self.bbox_y_min)
+        print("# ymax ", self.bbox_y_max)
+        print("# zmin ", self.bbox_z_min)
+        print("# zmax ", self.bbox_z_max)
         print("# Finished unknown section", "0x%x" % f.tell())
 
         ###############################################
