@@ -116,7 +116,11 @@ class MDR:
                 f.write(struct.pack("<H", len(o.name)))
                 f.write(struct.pack("%is" % len(o.name), o.name))
                 f.write(struct.pack("b", 2))  # unk0
-                f.write(struct.pack('x' * 0xB0))
+                f.write(struct.pack("f", 1.0))  # if the next 176 bytes are all 0, the object can not be moved in the editor
+                f.write(struct.pack('x' * 148))
+                f.write(struct.pack("ff", o.bbox_x_min, o.bbox_x_max))
+                f.write(struct.pack("ff", o.bbox_y_min, o.bbox_y_max))
+                f.write(struct.pack("ff", o.bbox_z_min, o.bbox_z_max))
                 f.write(struct.pack("<I", 3*len(o.index_array)))
                 for idx in o.index_array:
                     f.write(struct.pack("<HHH", idx[0], idx[1], idx[2]))
@@ -202,7 +206,10 @@ class MDR:
                 f.write(struct.pack("%is" % len(o.texture_name), o.texture_name))
                 f.write(struct.pack("b", 2))  # unk3
                 f.write(struct.pack("f", 1.0))  # if the next 176 bytes are all 0, the object can not be moved in the editor
-                f.write(struct.pack('x' * 172))
+                f.write(struct.pack('x' * 148))
+                f.write(struct.pack("ff", o.bbox_x_min, o.bbox_x_max))
+                f.write(struct.pack("ff", o.bbox_y_min, o.bbox_y_max))
+                f.write(struct.pack("ff", o.bbox_z_min, o.bbox_z_max))
                 f.write(struct.pack("<I", 3*len(o.vertex_array)))
                 for vert in o.vertex_array:
                     f.write(struct.pack("<fff", vert[0], vert[1], vert[2]))

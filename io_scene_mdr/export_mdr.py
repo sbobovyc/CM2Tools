@@ -30,9 +30,36 @@ Run this script from "File->Export" menu.
 import bpy
 import os
 import math
-from mathutils import Matrix
+from mathutils import Matrix, Vector
 from .mdr import MDR, MDRObject
 
+
+def bounds(obj, local=False):
+    local_coords = obj.bound_box[:]
+    om = obj.matrix_world
+
+    if not local:
+        worldify = lambda p: om * Vector(p[:])
+        coords = [worldify(p).to_tuple() for p in local_coords]
+    else:
+        coords = [p[:] for p in local_coords]
+
+    rotated = zip(*coords[::-1])
+
+    push_axis = []
+    for (axis, _list) in zip('xyz', rotated):
+        info = lambda: None
+        info.max = max(_list)
+        info.min = min(_list)
+        info.distance = info.max - info.min
+        push_axis.append(info)
+
+    import collections
+
+    originals = dict(zip(['x', 'y', 'z'], push_axis))
+
+    o_details = collections.namedtuple('object_details', 'x y z')
+    return o_details(**originals)
 
 def save(operator, context, filepath, var_float=1.0, path_mode='AUTO'):
     if len(bpy.context.selected_objects) == 0:
@@ -101,6 +128,15 @@ def save(operator, context, filepath, var_float=1.0, path_mode='AUTO'):
                     mdr_obj.uv_array[vi] = uv
             # for i in range(0, len(mdr_obj.uv_array)):
             #     print(i, mdr_obj.uv_array[i])
+
+            # bound box
+            object_bound_box = bounds(ob, False)
+            mdr_obj.bbox_x_min = object_bound_box.x.min
+            mdr_obj.bbox_x_max = object_bound_box.x.max
+            mdr_obj.bbox_y_min = object_bound_box.y.min
+            mdr_obj.bbox_y_max = object_bound_box.y.max
+            mdr_obj.bbox_z_min = object_bound_box.z.min
+            mdr_obj.bbox_z_max = object_bound_box.z.max
 
             diffuse_texture = None
             if me.materials[0].texture_slots[0] is None:
