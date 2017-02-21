@@ -70,12 +70,14 @@ def save(operator, context, filepath, var_float=1.0, path_mode='AUTO'):
     base_name = os.path.splitext(os.path.basename(filepath))[0]
     m = MDR(filepath, base_name, False, False, False)
     # loop through all selected objects and find one that does not have a parent (ie the root object)
-    root_ob = None
+    root_obj = None
+    child_objs = []
     for ob in bpy.context.selected_objects:
         if ob.parent is None:
-            root_ob = ob
-            break
-    ob_list = [root_ob] + list(root_ob.children)
+            root_obj = ob
+        else:
+            child_objs.append(ob)
+    ob_list = [root_obj] + child_objs
 
     for ob in ob_list:
         print(type(ob), ob.name, ob.type, ob.parent)
