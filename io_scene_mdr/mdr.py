@@ -454,9 +454,9 @@ class MDRObject:
         ###############################################
 
         unk, = struct.unpack("<I", f.read(4))
-        print("# Parsing footer, count:", unk)
         if unk != 0:
-            print(f.name)
+            print("# Parsing footer, count:", unk)
+            print(f.name, self.name)
             for i in range(0, unk):
                 print(struct.unpack("<fff", f.read(12)))
                 length, = struct.unpack("<I", f.read(4))
