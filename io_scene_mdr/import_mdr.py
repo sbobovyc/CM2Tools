@@ -36,7 +36,7 @@ from mathutils import Matrix
 from .mdr import MDR
 
 
-def load(context, filepath):
+def load(context, use_shadeless, filepath):
     print(filepath)
     base_name = os.path.splitext(os.path.basename(filepath))[0]
     outdir = ""
@@ -153,6 +153,9 @@ def load(context, filepath):
                 mnorm.use_map_color_diffuse = False
                 mnorm.use_map_normal = True
                 mnorm.normal_factor = 5
+
+        if use_shadeless:
+            mat.use_shadeless = True
 
         ob = bpy.data.objects.new(me.name, me)
         ob.data.materials.append(mat)

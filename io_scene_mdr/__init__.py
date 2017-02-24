@@ -68,7 +68,11 @@ class ImportMDR(bpy.types.Operator, ImportHelper, IOOBJOrientationHelper):
             default="*.mdr",
             options={'HIDDEN'},
             )
-
+    use_shadeless = BoolProperty(
+        name="Shadeless materials",
+        description="Make all materials shadeless",
+        default=False,
+    )
     """
     use_edges = BoolProperty(
             name="Lines",
@@ -149,12 +153,11 @@ class ImportMDR(bpy.types.Operator, ImportHelper, IOOBJOrientationHelper):
         return import_mdr.load(context, **keywords)
                        
     def draw(self, context):
-        pass
-        """
         layout = self.layout
 
         row = layout.row(align=True)
-        row.prop(self, "use_smooth_groups")
+        row.prop(self, "use_shadeless")
+        """
         row.prop(self, "use_edges")
 
         box = layout.box()
@@ -196,7 +199,7 @@ class ExportMDR(bpy.types.Operator, ExportHelper, IOOBJOrientationHelper):
             min=0.0, max=1000.0,
             soft_min=0.0, soft_max=1.0,
             default=1.0,
-            )    
+            )
     # # context group
     # use_selection = BoolProperty(
     #         name="Selection Only",
