@@ -77,11 +77,12 @@ def load(context, use_shadeless, filepath):
         me.update(calc_tessface=True, calc_edges=True)
 
         me.uv_textures.new()
-        for i, (face, blen_poly) in enumerate(zip(faces, me.polygons)):
-            blen_uvs = me.uv_layers[0]
-            for face_uvidx, lidx in zip(face, blen_poly.loop_indices):
-                blen_uvs.data[lidx].uv = mdr_ob.uv_array[0 if (face_uvidx is ...) else face_uvidx]
-
+        blen_uvs = me.uv_layers[0]
+        for f in me.polygons:
+            for li in f.loop_indices:
+                vi = me.loops[li].vertex_index
+                blen_uvs.data[li].uv = mdr_ob.uv_array[vi]
+        
         # TODO optimize material creation
         mat = bpy.data.materials.new(me.name)
         mat.specular_shader = 'PHONG'
