@@ -36,7 +36,7 @@ from mathutils import Matrix
 from .mdr import MDR
 
 
-def load(context, use_shadeless, filepath):
+def load(context, use_shadeless, use_smooth_shading, filepath):
     print(filepath)
     base_name = os.path.splitext(os.path.basename(filepath))[0]
     outdir = ""
@@ -79,6 +79,8 @@ def load(context, use_shadeless, filepath):
         me.uv_textures.new()
         blen_uvs = me.uv_layers[0]
         for f in me.polygons:
+            if use_smooth_shading:
+                f.use_smooth = True
             for li in f.loop_indices:
                 vi = me.loops[li].vertex_index
                 blen_uvs.data[li].uv = mdr_ob.uv_array[vi]
