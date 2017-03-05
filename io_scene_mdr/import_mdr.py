@@ -169,6 +169,7 @@ def load(context, use_shadeless, use_smooth_shading, filepath):
         if ob != new_objects[0]:
             parent = next((x for x in new_objects if x.name == mdr_ob.parent_name))
             ob.parent = parent
+            ob.matrix_parent_inverse = parent.matrix_world.inverted()  # http://blender.stackexchange.com/questions/9200/make-object-a-a-parent-of-object-b-via-python
         for anchor in mdr_ob.anchor_points:
             print(anchor)
             name = anchor[0]
@@ -190,6 +191,7 @@ def load(context, use_shadeless, use_smooth_shading, filepath):
 
             print(ob, anchor_ob)
             anchor_ob.parent = ob
+            anchor_ob.matrix_parent_inverse = ob.matrix_world.inverted()
 
         context.scene.objects.link(ob)
     return {'FINISHED'}
