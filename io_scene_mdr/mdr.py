@@ -282,7 +282,7 @@ class MDRObject:
             unk, = struct.unpack("f", f.read(4))
             self.collision_data.append(unk)
             if verbose:
-                print("# [%i] %f" % (i, unk))
+                print("# 0x%x [%i] %f" % (f.tell()-4, i, unk))
         self.bbox_x_min, self.bbox_x_max, self.bbox_y_min, self.bbox_y_max, self.bbox_z_min, self.bbox_z_max = struct.unpack("ffffff", f.read(24))
         print("# Bound box min/max")
         print("# xmin ", self.bbox_x_min)
@@ -354,9 +354,8 @@ class MDRObject:
             print("# End list of anchor points", "0x%x" % f.tell())
             f.read(2)  # always 0
             print("# random garbage? ", "0x%x" % f.tell())
-            read_matrix(f) # this is for sure model wide material
+            read_matrix(f)  # this is for sure model wide material
             f.read(2)  # always 0
-            meta1_offset = f.tell()
             self.material = read_material(f)
             print("# End section", "0x%x" % f.tell())
         else:
@@ -414,7 +413,7 @@ class MDRObject:
             unk, = struct.unpack("f", f.read(4))
             self.collision_data.append(unk)
             if verbose:
-                print("# [%i] %f" % (i, unk))
+                print("# 0x%x [%i] %f" % (f.tell() - 4, i, unk))
         self.bbox_x_min, self.bbox_x_max, self.bbox_y_min, self.bbox_y_max, self.bbox_z_min, self.bbox_z_max = struct.unpack("ffffff", f.read(24))
         print("# Bound box min/max")
         print("# xmin ", self.bbox_x_min)
