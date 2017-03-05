@@ -247,6 +247,7 @@ class MDRObject:
         self.bbox_y_max = 0
         self.bbox_z_min = 0
         self.bbox_z_max = 0
+        self.matrix_array = []
 
     def read(self, base_name, num_models, f, model_number, outdir, dump=True, verbose=False):
         ########
@@ -328,8 +329,8 @@ class MDRObject:
         print("# Unknown 0x%x" % unk, "at 0x%x" % (f.tell()-4))
 
         if model_number == 0:
-            read_matrix(f)
-            read_matrix(f)
+            self.matrix_array.append(read_matrix(f))
+            self.matrix_array.append(read_matrix(f))
 
             print("# End unknown section", "0x%x" % f.tell())
             unk1, = struct.unpack("<I", f.read(4))
@@ -362,8 +363,8 @@ class MDRObject:
             length, = struct.unpack("<xxH", f.read(4))
             self.parent_name = f.read(length).decode("ascii")
             print("# parent name:", self.parent_name, hex(f.tell()))
-            read_matrix(f)
-            read_matrix(f)
+            self.matrix_array.append(read_matrix(f))
+            self.matrix_array.append(read_matrix(f))
             anchor_point_count, = struct.unpack("<I", f.read(4))
             print("# Anchor point count", anchor_point_count)
             for i in range(0, anchor_point_count):
