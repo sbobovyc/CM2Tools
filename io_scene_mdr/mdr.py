@@ -329,18 +329,10 @@ class MDRObject:
         print("# Unknown 0x%x" % unk, "at 0x%x" % (f.tell()-4))
 
         if model_number == 0:
+            unk, = struct.unpack("<I", f.read(4))
+            print("# Unknown 0x%x" % unk, "at 0x%x" % (f.tell() - 4))
             self.matrix_array.append(read_matrix(f))
             self.matrix_array.append(read_matrix(f))
-
-            print("# End unknown section", "0x%x" % f.tell())
-            unk1, = struct.unpack("<I", f.read(4))
-            if unk1 != 0:
-                error_message = error_message = "unk1 is %s, not 0, 0x%x %s, %s, %s" % (
-                unk1, f.tell() - 4, base_name, self.name, model_number)
-                # raise ValueError(error_message)
-                print(error_message)
-            else:
-                print("unk1 is %s (always 0?) 0x%x %s, %s, %s" % (unk1, f.tell() - 1, base_name, self.name, model_number))                    
 
             anchor_point_count, = struct.unpack("<I", f.read(4))
             print("# Read 4 bytes, object count: ", anchor_point_count)
