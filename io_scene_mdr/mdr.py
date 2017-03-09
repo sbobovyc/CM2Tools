@@ -129,21 +129,19 @@ class MDR:
                     f.write(struct.pack("<ff", uv[0], uv[1]))
                 f.write(struct.pack('xxxx'))  # some unknown
                 if model_number == 0:
-                    # read_material
-                    f.write(struct.pack("ff", 0, 1.0))
+                    f.write(struct.pack('xxxx'))  # some unknown
+                    # global transform, identity for now
+                    f.write(struct.pack("fff", 1, 0, 0))
+                    f.write(struct.pack("fff", 0, 1, 0))
+                    f.write(struct.pack("fff", 0, 0, 1))
                     f.write(struct.pack("fff", 0, 0, 0))
-                    f.write(struct.pack("fff", 1.0, 0, 0))
-                    f.write(struct.pack("fff", 0, 1.0, 0))
-                    f.write(struct.pack("f", 0))
 
-                    # read_material
-                    f.write(struct.pack("ff", 0, 1.0))
+                    # global transform, identity for now
+                    f.write(struct.pack("fff", 1, 0, 0))
+                    f.write(struct.pack("fff", 0, 1, 0))
+                    f.write(struct.pack("fff", 0, 0, 1))
                     f.write(struct.pack("fff", 0, 0, 0))
-                    f.write(struct.pack("fff", 1.0, 0, 0))
-                    f.write(struct.pack("fff", 0, 1.0, 0))
-                    f.write(struct.pack("f", 0))
 
-                    f.write(struct.pack("<I", 0))  # unk1
                     f.write(struct.pack("<I", len(o.anchor_points)))
                     for anchor in o.anchor_points:
                         name, m = anchor
@@ -168,19 +166,17 @@ class MDR:
                     f.write(struct.pack("<xxH", len(o.parent_name)))
                     f.write(struct.pack("%is" % len(o.parent_name), o.parent_name))
 
-                    # read_material
-                    f.write(struct.pack("ff", 0, 1.0))
+                    # transform, identity for now
+                    f.write(struct.pack("fff", 1, 0, 0))
+                    f.write(struct.pack("fff", 0, 1, 0))
+                    f.write(struct.pack("fff", 0, 0, 1))
                     f.write(struct.pack("fff", 0, 0, 0))
-                    f.write(struct.pack("fff", 1.0, 0, 0))
-                    f.write(struct.pack("fff", 0, 1.0, 0))
-                    f.write(struct.pack("f", 0))
 
-                    # read_material
-                    f.write(struct.pack("ff", 0, 1.0))
+                    # transform, identity for now
+                    f.write(struct.pack("fff", 1, 0, 0))
+                    f.write(struct.pack("fff", 0, 1, 0))
+                    f.write(struct.pack("fff", 0, 0, 1))
                     f.write(struct.pack("fff", 0, 0, 0))
-                    f.write(struct.pack("fff", 1.0, 0, 0))
-                    f.write(struct.pack("fff", 0, 1.0, 0))
-                    f.write(struct.pack("f", 0))
 
                     f.write(struct.pack("<I", len(o.anchor_points)))
                     for anchor in o.anchor_points:
@@ -221,7 +217,6 @@ class MDR:
                     f.write(struct.pack('x'))
 
                 model_number += 1
-
 
 
 class MDRObject:
