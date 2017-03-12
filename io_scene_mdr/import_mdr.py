@@ -36,7 +36,7 @@ from mathutils import Matrix
 from .mdr import MDR
 
 
-def load(context, use_shadeless, use_smooth_shading, filepath):
+def load(context, use_shadeless, use_smooth_shading, use_transform, filepath):
     print(filepath)
     base_name = os.path.splitext(os.path.basename(filepath))[0]
     outdir = ""
@@ -170,6 +170,37 @@ def load(context, use_shadeless, use_smooth_shading, filepath):
             parent = next((x for x in new_objects if x.name == mdr_ob.parent_name))
             ob.parent = parent
             ob.matrix_parent_inverse = parent.matrix_world.inverted()  # http://blender.stackexchange.com/questions/9200/make-object-a-a-parent-of-object-b-via-python
+        #TODO multiply normals by transpose of the inverse of the transform_matrix
+        #http://www.scratchapixel.com/lessons/mathematics-physics-for-computer-graphics/geometry/transforming-normals
+        if use_transform:
+            print("Translating", ob.name)
+            forward_matrix = mdr_ob.matrix_array[0]
+            backward_matrix = mdr_ob.matrix_array[1]
+            transform_matrix = [4 * [0] for i in range(4)]
+            for i in range(0, 4):
+                for j in range(0, 3):
+                    transform_matrix[j][i] = backward_matrix[i][j]
+            transform_matrix[3][3] = 1.0
+            m = Matrix(transform_matrix)
+            print(m)
+            ob.data.transform(m)
+
+            transform_matrix = [4 * [0] for i in range(4)]
+            for i in range(0, 4):
+                for j in range(0, 3):
+                    transform_matrix[j][i] = forward_matrix[i][j]
+            transform_matrix[3][3] = 1.0
+            m = Matrix(transform_matrix)
+            ob.matrix_world = m
+            # print("m", m)
+            # print("m inv", m.inverted())
+            # ob.data.transform(m.inverted())
+            # ob.matrix_world = m
+
+            for v in ob.data.vertices:
+                n = v.normal
+                v.normal = m.inverted().transposed() * n
+
         for anchor in mdr_ob.anchor_points:
             print(anchor)
             name = anchor[0]

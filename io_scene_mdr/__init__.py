@@ -78,6 +78,11 @@ class ImportMDR(bpy.types.Operator, ImportHelper, IOOBJOrientationHelper):
         description="Make all objects use smooth shading",
         default=True,
     )
+    use_transform  = BoolProperty(
+        name="Use transform",
+        description="Apply transform to object",
+        default=False,
+    )
     """
     use_edges = BoolProperty(
             name="Lines",
@@ -163,6 +168,7 @@ class ImportMDR(bpy.types.Operator, ImportHelper, IOOBJOrientationHelper):
         row = layout.row(align=True)
         row.prop(self, "use_shadeless")
         layout.prop(self, "use_smooth_shading")
+        layout.prop(self, "use_transform")
         """
         row.prop(self, "use_edges")
 
