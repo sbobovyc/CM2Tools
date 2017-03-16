@@ -11,13 +11,14 @@ GNU General Public License for more details.
 You should have received a copy of the GNU General Public License
 along with this program. If not, see <http://www.gnu.org/licenses/>.
 """
-from __future__ import print_function
-from __future__ import division
 import argparse
 import struct
 import os
 import errno
 import sys
+import time
+from multiprocessing import Pool, Manager
+from itertools import repeat
 try:
     from StringIO import StringIO
 except ImportError:
@@ -25,7 +26,7 @@ except ImportError:
 
 
 def update_progress(progress):
-    sys.stdout.write('\r[{bar: <10}] {percent}%'.format(bar='#'*int(progress*10), percent=int(progress*100)))
+    sys.stdout.write('\r[{bar: <10}] {percent}%\r'.format(bar='#'*int(progress*10), percent=int(progress*100)))
     sys.stdout.flush()
 
 
@@ -35,7 +36,7 @@ class BrzFile:
         self.file_count = 0
         self.brz_file_list = []
         
-    def unpack(self, outdir, verbose=False):
+    def unpack(self, outdir, parallel=False, verbose=False):
         with open(self.path, "rb") as f:
             u1,count = struct.unpack("<II", f.read(8))
             # print("Unknown int: ", u1)
@@ -49,27 +50,50 @@ class BrzFile:
                 entry = BrzFileEntry(file_name, dir_name, offset)
                 if verbose:
                     print(entry)
-                self.brz_file_list.append(entry)     
-            for i in range(0, count):
-                directory = os.path.join(outdir, self.brz_file_list[i].dir.decode("ascii"))
-                directory = directory.replace('\\', '/')
-                try: 
-                    os.makedirs(directory)
-                except OSError as err:
-                    # Reraise the error unless it's about an already existing directory 
-                    if err.errno != errno.EEXIST or not os.path.isdir(directory): 
-                        raise
-                new_file = os.path.join(outdir, self.brz_file_list[i].dir.decode("ascii"), self.brz_file_list[i].name.decode("ascii"))
-                new_file = new_file.replace('\\', '/')
-                with open(new_file, "wb") as f_new:
-                    f.seek(self.brz_file_list[i].offset)
-                    if i != count-1:
-                        file_length = self.brz_file_list[i+1].offset - self.brz_file_list[i].offset
-                        f_new.write(f.read(file_length))
+                self.brz_file_list.append(entry)
+            if not parallel:
+                for i in range(0, count):
+                    self.unpack_file(i, count, None, outdir, verbose)
+                    update_progress(i/count)
+            else:
+                p = Pool()
+                m = Manager()
+                q = m.Queue()                
+                args = zip(list(range(0, count)), repeat(count, count), repeat(q, count), repeat(outdir, count), repeat(verbose, count))
+                result = p.starmap_async(self.unpack_file, args)
+                # monitor loop
+                while True:
+                    if result.ready():
+                        break
                     else:
-                        f_new.write(f.read())
-                update_progress(i/count)
-                        
+                        size = q.qsize()
+                        #sys.stdout.write("stat %.0f%%\r" % ())  # based on number of files dumped
+                        progress = size / count
+                        update_progress(progress)
+                        time.sleep(0.1)
+                
+    def unpack_file(self, i, count, q, outdir, verbose=False):
+        with open(self.path, "rb") as f:
+            directory = os.path.join(outdir, self.brz_file_list[i].dir.decode("ascii"))
+            directory = directory.replace('\\', '/')
+            try: 
+                os.makedirs(directory)
+            except OSError as err:
+                # Reraise the error unless it's about an already existing directory 
+                if err.errno != errno.EEXIST or not os.path.isdir(directory): 
+                    raise
+            new_file = os.path.join(outdir, self.brz_file_list[i].dir.decode("ascii"), self.brz_file_list[i].name.decode("ascii"))
+            new_file = new_file.replace('\\', '/')
+            with open(new_file, "wb") as f_new:
+                f.seek(self.brz_file_list[i].offset)
+                if i != count-1:
+                    file_length = self.brz_file_list[i+1].offset - self.brz_file_list[i].offset
+                    f_new.write(f.read(file_length))
+                else:
+                    f_new.write(f.read())
+        if q is not None:
+            q.put(0) # increase size of queue by one to indicate job is done
+        
     def pack(self, directory, verbose=False):
         # walk through dirs and get file paths, file sizes and add lengths of file paths
         if sys.version_info <= (3,0):
@@ -115,12 +139,17 @@ if __name__ == '__main__':
     parser.add_argument('-c', '--compress', default=False, action='store_true', help="Pack files into brz")
     parser.add_argument('-o', '--outdir', default=os.getcwd(), help='Output directory')
     parser.add_argument('-v', '--verbose', default=False, action='store_true', help='Print info as files are unpacked')
+    parser.add_argument('-p', '--parallel', default=False, action='store_true', help='Use multiple workers when extracting files (This feature is experimental and will fail if not used from Python script)')
+
     args = parser.parse_args()
 
     filepath = args.filepath
     outdir = args.outdir
     if args.extract and not args.compress:
-        BrzFile(filepath).unpack(outdir, args.verbose)
+        t0 = time.time()
+        BrzFile(filepath).unpack(outdir, args.parallel, args.verbose)
+        t1 = time.time()
+        print(t1 - t0)
     elif args.compress and not args.extract:
         indir = os.path.split(filepath)[0]
         outfile = os.path.join(args.outdir, indir + ".brz")
