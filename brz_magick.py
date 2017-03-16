@@ -17,6 +17,7 @@ import os
 import errno
 import sys
 import time
+import ctypes
 from multiprocessing import Pool, Manager
 from itertools import repeat
 try:
@@ -35,13 +36,15 @@ class BrzFile:
         self.path = path
         self.file_count = 0
         self.brz_file_list = []
+        self.parallel = False
         
     def unpack(self, outdir, parallel=False, verbose=False):
+        self.parallel = parallel
         with open(self.path, "rb") as f:
-            u1,count = struct.unpack("<II", f.read(8))
+            u1, self.file_count = struct.unpack("<II", f.read(8))
             # print("Unknown int: ", u1)
-            print("File count: %i" % count)
-            for i in range(0,count):
+            print("File count: %i" % self.file_count)
+            for i in range(0, self.file_count):
                 offset, = struct.unpack("<I", f.read(4))
                 name_len, = struct.unpack("<H", f.read(2))
                 file_name, = struct.unpack("%is" % name_len, f.read(name_len))        
@@ -51,28 +54,26 @@ class BrzFile:
                 if verbose:
                     print(entry)
                 self.brz_file_list.append(entry)
-            if not parallel:
-                for i in range(0, count):
-                    self.unpack_file(i, count, None, outdir, verbose)
-                    update_progress(i/count)
+            if not self.parallel:
+                for i in range(0, self.file_count):
+                    self.unpack_file(i, outdir, verbose)
+                    update_progress(i/self.file_count)
             else:
                 p = Pool()
                 m = Manager()
-                q = m.Queue()                
-                args = zip(list(range(0, count)), repeat(count, count), repeat(q, count), repeat(outdir, count), repeat(verbose, count))
+                self.done_counter = m.Value(ctypes.c_ulong, 0)                
+                args = zip(list(range(0, self.file_count)), repeat(outdir, self.file_count), repeat(verbose, self.file_count))
                 result = p.starmap_async(self.unpack_file, args)
                 # monitor loop
                 while True:
                     if result.ready():
                         break
                     else:
-                        size = q.qsize()
-                        #sys.stdout.write("stat %.0f%%\r" % ())  # based on number of files dumped
-                        progress = size / count
+                        size = self.done_counter.value
+                        progress = size / self.file_count
                         update_progress(progress)
-                        time.sleep(0.1)
                 
-    def unpack_file(self, i, count, q, outdir, verbose=False):
+    def unpack_file(self, i, outdir, verbose=False):
         with open(self.path, "rb") as f:
             directory = os.path.join(outdir, self.brz_file_list[i].dir.decode("ascii"))
             directory = directory.replace('\\', '/')
@@ -86,13 +87,13 @@ class BrzFile:
             new_file = new_file.replace('\\', '/')
             with open(new_file, "wb") as f_new:
                 f.seek(self.brz_file_list[i].offset)
-                if i != count-1:
+                if i != self.file_count-1:
                     file_length = self.brz_file_list[i+1].offset - self.brz_file_list[i].offset
                     f_new.write(f.read(file_length))
                 else:
                     f_new.write(f.read())
-        if q is not None:
-            q.put(0) # increase size of queue by one to indicate job is done
+        if self.parallel:
+            self.done_counter.value +=1
         
     def pack(self, directory, verbose=False):
         # walk through dirs and get file paths, file sizes and add lengths of file paths
