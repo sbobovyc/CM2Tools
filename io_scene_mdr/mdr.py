@@ -321,7 +321,9 @@ class MDRObject:
 
         print("# Start unknown section 1")
         unk, = struct.unpack("<I", f.read(4))
-        print("# Unknown 0x%x" % unk, "at 0x%x" % (f.tell()-4))
+        print("# Unknown uint32 0x%x (%i)" % (unk, unk), "at 0x%x" % (f.tell()-4))
+        if unk != uv_in_section/2 - 1:
+            print("Unknown uint32 != uv_in_section/2 - 1")
 
         if model_number == 0:
             unk, = struct.unpack("<I", f.read(4))
