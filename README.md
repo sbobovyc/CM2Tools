@@ -2,7 +2,8 @@
 
 Requirements
 
- - Python 3
+ - Python 3  
+ - numpy
 
 To view the help message of scripts:  
 python3 brz_magick.py -h

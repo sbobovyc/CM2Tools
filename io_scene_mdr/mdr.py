@@ -28,8 +28,7 @@ Usage:
 Run this script from "File->Import" menu and then load the desired MDR file.
 """
 
-import os
-import json
+import numpy as np
 import struct
 from pprint import pprint
 
@@ -43,22 +42,17 @@ def print4x4matrix(matrix):
 
 def read_matrix(f):
     print("# Start reading matrix", "0x%x" % f.tell())
-    meta = [3*[0] for i in range(4)]
-    for i in range(0, 4):
-        for j in range(0, 3):
+    mat = np.identity(4)
+
+    # 3x4 matrix, column order
+    for column in range(0, 4):
+        for row in range(0, 3):
             value, = struct.unpack("f", f.read(4))
-            print("# 0x%x [%i] %f" % (f.tell()-4, i, value))
-            meta[i][j] = value
-    pprint(meta)
-    transform_matrix = [ 4*[0] for i in range(4)]
-    for i in range(0, 4):
-        for j in range(0, 3):
-            transform_matrix[j][i] = meta[i][j]
-    transform_matrix[3][3] = 1.0
-    print("# This is mostly likely this transform matrix:")
-    print4x4matrix(transform_matrix)
-    print("# End metadata", "0x%x" % f.tell())
-    return meta
+            print("# 0x%x [%i] %f" % (f.tell()-4, column, value))
+            mat[row][column] = value
+    print("# This is a transform matrix:")
+    print(mat)
+    return mat
 
 
 def read_material(f):

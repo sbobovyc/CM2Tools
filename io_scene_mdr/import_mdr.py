@@ -176,26 +176,12 @@ def load(context, use_shadeless, use_smooth_shading, use_transform, filepath):
             print("Translating", ob.name)
             forward_matrix = mdr_ob.matrix_array[0]
             backward_matrix = mdr_ob.matrix_array[1]
-            transform_matrix = [4 * [0] for i in range(4)]
-            for i in range(0, 4):
-                for j in range(0, 3):
-                    transform_matrix[j][i] = backward_matrix[i][j]
-            transform_matrix[3][3] = 1.0
-            m = Matrix(transform_matrix)
+            m = Matrix(backward_matrix)
             print(m)
             ob.data.transform(m)
 
-            transform_matrix = [4 * [0] for i in range(4)]
-            for i in range(0, 4):
-                for j in range(0, 3):
-                    transform_matrix[j][i] = forward_matrix[i][j]
-            transform_matrix[3][3] = 1.0
-            m = Matrix(transform_matrix)
+            m = Matrix(forward_matrix)
             ob.matrix_world = m
-            # print("m", m)
-            # print("m inv", m.inverted())
-            # ob.data.transform(m.inverted())
-            # ob.matrix_world = m
 
             for v in ob.data.vertices:
                 n = v.normal
@@ -205,12 +191,7 @@ def load(context, use_shadeless, use_smooth_shading, use_transform, filepath):
             print(anchor)
             name = anchor[0]
             matrix = anchor[1]
-            transform_matrix = [4*[0] for i in range(4)]
-            for i in range(0, 4):
-                for j in range(0, 3):
-                    transform_matrix[j][i] = matrix[i][j]
-            transform_matrix[3][3] = 1.0
-            m = Matrix(transform_matrix)
+            m = Matrix(matrix)
             print(m)
 
             anchor_ob = bpy.data.objects.new(name, None)
