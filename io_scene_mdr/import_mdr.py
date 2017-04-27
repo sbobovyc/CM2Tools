@@ -36,7 +36,7 @@ from mathutils import Matrix
 from .mdr import MDR
 
 
-def load(context, use_shadeless, use_smooth_shading, use_transform, filepath):
+def load(context, use_shadeless, use_smooth_shading, use_transform, use_recursive_search, filepath):
     print(filepath)
     base_name = os.path.splitext(os.path.basename(filepath))[0]
     outdir = ""
@@ -103,7 +103,7 @@ def load(context, use_shadeless, use_smooth_shading, use_transform, filepath):
         if not img_found:
             image = load_image(mdr_ob.texture_name+".bmp", os.path.dirname(filepath))
             # if texture file is not found, recursively scan parent dir
-            if image is None:
+            if image is None and use_recursive_search:
                 parent_dir = os.path.dirname(os.path.dirname(filepath))
                 image = load_image(mdr_ob.texture_name+".bmp", parent_dir, recursive=True)
 
