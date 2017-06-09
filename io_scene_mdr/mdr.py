@@ -344,7 +344,7 @@ class MDRObject:
         else:
             length, = struct.unpack("<xxH", f.read(4))
             self.parent_name = f.read(length).decode("ascii")
-            print("# parent name:", self.parent_name, hex(f.tell()))
+            print("# %s, parent name:" % self.name, self.parent_name, hex(f.tell()))
             self.matrix_array.append(read_matrix(f))
             self.matrix_array.append(read_matrix(f))
             anchor_point_count, = struct.unpack("<I", f.read(4))
@@ -358,10 +358,12 @@ class MDRObject:
                 self.anchor_points.append((anchor_name, m))
                 print("#End of sub-meta", "0x%x" % f.tell())
 
+            print("# Unknown data:")
             unk = []
             for i in range(0, 13):
                 unk.append(*struct.unpack("f", f.read(4)))
                 print("0x%x %f" % (f.tell()-4, unk[-1]))
+            print("# End unknown data")
 
             self.material = read_material(f)
             print("# End section", "0x%x" % f.tell())
