@@ -174,8 +174,8 @@ def load(context, use_shadeless, use_smooth_shading, use_transform, use_recursiv
         #http://www.scratchapixel.com/lessons/mathematics-physics-for-computer-graphics/geometry/transforming-normals
         if use_transform:
             print("Translating", ob.name)
-            forward_matrix = mdr_ob.matrix_array[0]
-            backward_matrix = mdr_ob.matrix_array[1]
+            forward_matrix = mdr_ob.transform_matrix
+            backward_matrix = mdr_ob.inverse_transform_matrix
             m = Matrix(backward_matrix)
             print(m)
             ob.data.transform(m)

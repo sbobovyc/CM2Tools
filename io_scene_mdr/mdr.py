@@ -55,6 +55,12 @@ def read_matrix(f):
     return mat
 
 
+def write_matrix(mat, f):
+    # 3x4 matrix, column order
+    for column in range(0, 4):
+        f.write(struct.pack("fff", *mat[column][:3]))
+
+
 def read_material(f):
     print("# Start reading material", "0x%x" % f.tell())
     unknown_constants = struct.unpack("ff", f.read(8))
@@ -124,17 +130,8 @@ class MDR:
                 f.write(struct.pack('xxxx'))  # some unknown
                 if model_number == 0:
                     f.write(struct.pack('xxxx'))  # some unknown
-                    # global transform, identity for now
-                    f.write(struct.pack("fff", 1, 0, 0))
-                    f.write(struct.pack("fff", 0, 1, 0))
-                    f.write(struct.pack("fff", 0, 0, 1))
-                    f.write(struct.pack("fff", 0, 0, 0))
-
-                    # global transform, identity for now
-                    f.write(struct.pack("fff", 1, 0, 0))
-                    f.write(struct.pack("fff", 0, 1, 0))
-                    f.write(struct.pack("fff", 0, 0, 1))
-                    f.write(struct.pack("fff", 0, 0, 0))
+                    write_matrix(o.transform_matrix, f)
+                    write_matrix(o.inverse_transform_matrix, f)
 
                     f.write(struct.pack("<I", len(o.anchor_points)))
                     for anchor in o.anchor_points:
@@ -160,17 +157,8 @@ class MDR:
                     f.write(struct.pack("<xxH", len(o.parent_name)))
                     f.write(struct.pack("%is" % len(o.parent_name), o.parent_name))
 
-                    # transform, identity for now
-                    f.write(struct.pack("fff", 1, 0, 0))
-                    f.write(struct.pack("fff", 0, 1, 0))
-                    f.write(struct.pack("fff", 0, 0, 1))
-                    f.write(struct.pack("fff", 0, 0, 0))
-
-                    # transform, identity for now
-                    f.write(struct.pack("fff", 1, 0, 0))
-                    f.write(struct.pack("fff", 0, 1, 0))
-                    f.write(struct.pack("fff", 0, 0, 1))
-                    f.write(struct.pack("fff", 0, 0, 0))
+                    write_matrix(o.transform_matrix, f)
+                    write_matrix(o.inverse_transform_matrix, f)
 
                     f.write(struct.pack("<I", len(o.anchor_points)))
                     for anchor in o.anchor_points:
@@ -236,7 +224,8 @@ class MDRObject:
         self.bbox_y_max = 0
         self.bbox_z_min = 0
         self.bbox_z_max = 0
-        self.matrix_array = []
+        self.transform_matrix = None
+        self.inverse_transform_matrix = None
 
     def read(self, base_name, num_models, f, model_number, outdir, dump=True, verbose=False):
         ########
@@ -322,8 +311,8 @@ class MDRObject:
         if model_number == 0:
             unk, = struct.unpack("<I", f.read(4))
             print("# Unknown 0x%x" % unk, "at 0x%x" % (f.tell() - 4))
-            self.matrix_array.append(read_matrix(f))
-            self.matrix_array.append(read_matrix(f))
+            self.transform_matrix = read_matrix(f)
+            self.inverse_transform_matrix = read_matrix(f)
 
             anchor_point_count, = struct.unpack("<I", f.read(4))
             print("# Read 4 bytes, object count: ", anchor_point_count)
@@ -345,8 +334,8 @@ class MDRObject:
             length, = struct.unpack("<xxH", f.read(4))
             self.parent_name = f.read(length).decode("ascii")
             print("# %s, parent name:" % self.name, self.parent_name, hex(f.tell()))
-            self.matrix_array.append(read_matrix(f))
-            self.matrix_array.append(read_matrix(f))
+            self.transform_matrix = read_matrix(f)
+            self.inverse_transform_matrix = read_matrix(f)
             anchor_point_count, = struct.unpack("<I", f.read(4))
             print("# Anchor point count", anchor_point_count)
             for i in range(0, anchor_point_count):
@@ -393,7 +382,6 @@ class MDRObject:
             print("unk3 is %s (always 2?) 0x%x %s, %s, %s" % (unk3, f.tell() - 1, base_name, self.name, model_number))
 
         print("# Start unknown section of 176 bytes, has something to do with collision box", "0x%x" % f.tell())
-        self.collision_data = []
         for i in range(0, 38):
             unk, = struct.unpack("f", f.read(4))
             self.collision_data.append(unk)

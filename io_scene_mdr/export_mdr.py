@@ -61,6 +61,7 @@ def bounds(obj, local=False):
     o_details = collections.namedtuple('object_details', 'x y z')
     return o_details(**originals)
 
+
 def save(operator, context, filepath, var_float=1.0, path_mode='AUTO'):
     if len(bpy.context.selected_objects) == 0:
         operator.report({'ERROR'}, "You must select a mesh object to export")
@@ -159,6 +160,8 @@ def save(operator, context, filepath, var_float=1.0, path_mode='AUTO'):
             mdr_obj.vertex_array = vertex_array
             mdr_obj.vertex_normal_array = vertex_normal_array
             mdr_obj.texture_name = diffuse_texture_file.encode('ascii')
+            mdr_obj.transform_matrix = matrix_world
+            mdr_obj.inverse_transform_matrix = matrix_world.inverted()
             mdr_obj.material["diffuse_color"] = tuple(ob.material_slots[0].material.diffuse_color)
             mdr_obj.material["specular_color"] = tuple(ob.material_slots[0].material.specular_color)
             mdr_obj.material["shininess"] = (ob.material_slots[0].material.specular_hardness / 511.0) * 128.0  # GL_SHININESS is 0 to 128
