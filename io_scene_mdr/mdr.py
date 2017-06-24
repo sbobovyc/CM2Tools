@@ -63,8 +63,6 @@ def write_matrix(mat, f):
 
 def read_material(f):
     print("# Start reading material", "0x%x" % f.tell())
-    unknown_constants = struct.unpack("ff", f.read(8))
-    print("# Unknown constants", unknown_constants)
     ambient_color = struct.unpack("fff", f.read(4 * 3))
     print("# Ambient color", ambient_color)  # GL_AMBIENT
     diffuse_color = struct.unpack("fff", f.read(4 * 3))
@@ -75,10 +73,12 @@ def read_material(f):
     print("# Shininess", shininess)  # GL_SHININESS
     alpha_constant, = struct.unpack("f", f.read(4))
     print("# Alpha constant", alpha_constant)
+    unknown_constant, = struct.unpack("f", f.read(4))
+    print("# Unknown constant", unknown_constant)
     print("# End material", "0x%x" % f.tell())
 
     material = {}
-    material["unknown_constants"] = unknown_constants
+    material["unknown_constant"] = unknown_constant
     material["ambient_color"] = ambient_color
     material["diffuse_color"] = diffuse_color
     material["specular_color"] = specular_color
@@ -100,7 +100,7 @@ class MDR:
 
     def read(self, outdir):
         with open(self.filepath, "rb") as f:
-            self.num_models, = struct.unpack("<Ix", f.read(5))
+            self.num_models, = struct.unpack("<I", f.read(4))
             print("# number of models", self.num_models)
             for i in range(0, self.num_models):
                 mdr_obj = MDRObject()
@@ -127,7 +127,7 @@ class MDR:
                 f.write(struct.pack("<I", 2*len(o.uv_array)))
                 for uv in o.uv_array:
                     f.write(struct.pack("<ff", uv[0], uv[1]))
-                f.write(struct.pack('xxxx'))  # some unknown
+                f.write(struct.pack('<I', len(o.uv_array)-1))  # last uv index
                 if model_number == 0:
                     f.write(struct.pack('xxxx'))  # some unknown
                     write_matrix(o.transform_matrix, f)
@@ -240,12 +240,13 @@ class MDRObject:
         self.base_name = base_name
         print("# Start model %i" % model_number, "at 0x%x" % f.tell(),
               "##############################################################")
+        f.read(1)  # read at 004537A0
         name_length, = struct.unpack("<H", f.read(2))
         print("# submodel name length:", name_length)
-        self.name = f.read(name_length).decode("ascii")
+        self.name = f.read(name_length).decode("ascii")  # saved at 0073E054
         print("# submodel name:", self.name)
 
-        unk0, = struct.unpack("b", f.read(1))
+        unk0, = struct.unpack("b", f.read(1))  # saved at 004539C7
         if unk0 != 2:
             error_message = "unk0 is %s, not 2, 0x%x %s, %s, %s" % (
             unk0, f.tell() - 1, base_name, self.name, model_number)
@@ -255,13 +256,32 @@ class MDRObject:
             print("unk0 is %s (always 2?) 0x%x %s, %s, %s" % (unk0, f.tell() - 1, base_name, self.name, model_number))
             
         print("# Start unknown section of 176 bytes, has something to do with collision box", "0x%x" % f.tell())
+        # read 40 bytes, i.e. 10 floats
+        # then read 4 bytes
+        # for i in range(0, 4):
+        #   then read 4 bytes
+        #   then read 4 bytes
+        #   then read 4 bytes
+        #   then read 4 bytes
         self.collision_data = []
-        for i in range(0, 38):
+        for i in range(0, 10):
             unk, = struct.unpack("f", f.read(4))
             self.collision_data.append(unk)
             if verbose:
                 print("# 0x%x [%i] %f" % (f.tell()-4, i, unk))
-        self.bbox_x_min, self.bbox_x_max, self.bbox_y_min, self.bbox_y_max, self.bbox_z_min, self.bbox_z_max = struct.unpack("ffffff", f.read(24))
+        unk, = struct.unpack("f", f.read(4))  # saved at 00453AAA
+        self.collision_data.append(unk)
+        if verbose:
+            print("# 0x%x %f" % (f.tell()-4, unk))        
+        for i in range(0, 6):
+            for j in range(0, 4):
+                unk, = struct.unpack("f", f.read(4))
+                self.collision_data.append(unk)
+                if verbose:
+                    print("# 0x%x [%i] %f" % (f.tell()-4, i, unk))
+        unk = struct.unpack("fff", f.read(12))
+        print("# %f %f %f" % (unk))  # saved at 00453B3C
+        self.bbox_x_min, self.bbox_x_max, self.bbox_y_min, self.bbox_y_max, self.bbox_z_min, self.bbox_z_max = struct.unpack("ffffff", f.read(24))  # saved at 00453B4C
         print("# Bound box min/max")
         print("# xmin ", self.bbox_x_min)
         print("# xmax ", self.bbox_x_max)
@@ -273,10 +293,10 @@ class MDRObject:
 
         ###############################################
         print("# Start face vertex indices at 0x%x" % f.tell())
-        face_count, = struct.unpack("<I", f.read(4))
-        print("# Face count:", face_count / 3)
+        face_count, = struct.unpack("<I", f.read(4))  # read at 004537C5
+        print("# Face count:", int(face_count / 3))
 
-        for i in range(0, int(face_count / 3)):
+        for i in range(0, int(face_count / 3)):  # read at 0045397B
             if not dump:
                 f.read(6)
             else:
@@ -289,9 +309,9 @@ class MDRObject:
         ###############################################
         print("# Start UVs at 0x%x" % f.tell())
         uv_in_section, = struct.unpack("<I", f.read(4))
-        print("# UV in section:", uv_in_section / 2)
+        print("# UV in section:", int(uv_in_section / 2))
 
-        for i in range(0, int(uv_in_section / 2)):
+        for i in range(0, int(uv_in_section / 2)):  # read at 00453965
             if not dump:
                 f.read(8)
             else:
@@ -303,76 +323,64 @@ class MDRObject:
         ###############################################
 
         print("# Start unknown section 1")
-        unk, = struct.unpack("<I", f.read(4))
-        print("# Unknown uint32 0x%x (%i)" % (unk, unk), "at 0x%x" % (f.tell()-4))
-        if unk != uv_in_section/2 - 1:
-            print("Unknown uint32 != uv_in_section/2 - 1")
+        uv_last_index, = struct.unpack("<I", f.read(4))
+        print("# Last uv index %i" % uv_last_index, "at 0x%x" % (f.tell()-4))  # saved at 0045381B, right after UV data
+        if uv_last_index != uv_in_section/2 - 1:
+            print("Last uv index != uv_in_section/2 - 1")
 
-        if model_number == 0:
-            unk, = struct.unpack("<I", f.read(4))
-            print("# Unknown 0x%x" % unk, "at 0x%x" % (f.tell() - 4))
-            self.transform_matrix = read_matrix(f)
-            self.inverse_transform_matrix = read_matrix(f)
+        #if model_number == 0:
+        #
+        #unk2, = struct.unpack("<H", f.read(2))  # read in sub_73DE20, length of string
+        #print("# Unknown uint16 0x%x, uint16 0x%x" % (unk1, unk2), "at 0x%x" % (f.tell() - 4))
+        unk1, = struct.unpack("<H", f.read(2))  # read at 00453826, some kind of a counter?
+        length, = struct.unpack("<H", f.read(2))
+        self.parent_name = f.read(length).decode("ascii")
+        print("# %s, parent name:" % self.name, self.parent_name, hex(f.tell()))
+        
+        self.transform_matrix = read_matrix(f)  # read at 004532C1
+        self.inverse_transform_matrix = read_matrix(f)  # read at 004532D1
+        # TODO resume REing from here
+        anchor_point_count, = struct.unpack("<I", f.read(4))  # read at 004532DF
+        print("# Read 4 bytes, object count: ", anchor_point_count)
 
-            anchor_point_count, = struct.unpack("<I", f.read(4))
-            print("# Read 4 bytes, object count: ", anchor_point_count)
+        for i in range(0, anchor_point_count):
+            name_length, = struct.unpack("<H", f.read(2))
+            anchor_name = f.read(name_length).decode("ascii")
+            print("Anchor point %i: %s" % (i, anchor_name))
+            m = read_matrix(f)  # read at 00453311
+            self.anchor_points.append((anchor_name, m))
+        print("# End list of anchor points", "0x%x" % f.tell())
+        # 3 times
+        for i in range(0, 3):
+            f.read(1)  # always 0, read at 00453347, saved at 0045335B
+            f.read(1)  # always 0, read at 00453365, saved at 00453378
+            # read 4 at 00453380
+            # read 4 at 00453395
+            f.read(4)
+            f.read(4)
 
-            for i in range(0, anchor_point_count):
-                name_length, = struct.unpack("<H", f.read(2))
-                anchor_name = f.read(name_length).decode("ascii")
-                print("Anchor point %i: %s" % (i, anchor_name))
-                m = read_matrix(f)
-                self.anchor_points.append((anchor_name, m))
-            print("# End list of anchor points", "0x%x" % f.tell())
-            f.read(2)  # always 0
-            print("# random garbage? ", "0x%x" % f.tell())
-            read_matrix(f)  # this is for sure model wide material
-            f.read(2)  # always 0
-            self.material = read_material(f)
-            print("# End section", "0x%x" % f.tell())
-        else:
-            length, = struct.unpack("<xxH", f.read(4))
-            self.parent_name = f.read(length).decode("ascii")
-            print("# %s, parent name:" % self.name, self.parent_name, hex(f.tell()))
-            self.transform_matrix = read_matrix(f)
-            self.inverse_transform_matrix = read_matrix(f)
-            anchor_point_count, = struct.unpack("<I", f.read(4))
-            print("# Anchor point count", anchor_point_count)
-            for i in range(0, anchor_point_count):
-                length, = struct.unpack("<H", f.read(2))
-                anchor_name = f.read(length).decode("ascii")
-                print("# Memory point name:", anchor_name)
-                if length != 0:
-                    m = read_matrix(f)
-                self.anchor_points.append((anchor_name, m))
-                print("#End of sub-meta", "0x%x" % f.tell())
+        # 3 times
+        for i in range(0, 3):
+            f.read(1)
+            f.read(1)
+            f.read(4)
+            f.read(4)
+        # read 1 at 004533CE, saved at 004533E2
+        # read 1 at 004533EC
+        # read 4 at 00453407
+        # read 4 at 0045341C
+        print("# random garbage? ", "0x%x" % f.tell())
+        
+        self.material = read_material(f)  # read at 0045343F, sub_5CE790
+        print("# End section", "0x%x" % f.tell())
 
-            print("# Unknown data:")
-            unk = []
-            for i in range(0, 13):
-                unk.append(*struct.unpack("f", f.read(4)))
-                print("0x%x %f" % (f.tell()-4, unk[-1]))
-            print("# End unknown data")
-
-            self.material = read_material(f)
-            print("# End section", "0x%x" % f.tell())
-
-        unk2, = struct.unpack("<I", f.read(4))        
-        if unk2 != 0:
-            error_message = error_message = "unk2 is %s, not 0, 0x%x %s, %s, %s" % (
-            unk2, f.tell() - 4, base_name, self.name, model_number)
-            # raise ValueError(error_message)
-            print(error_message)
-        else:
-            print("unk2 is %s (always 0?) 0x%x %s, %s, %s" % (unk2, f.tell() - 4, base_name, self.name, model_number))
-
-        name_length, = struct.unpack("<H", f.read(2))
-        texture_name = f.read(name_length).decode("ascii")
+        name_length, = struct.unpack("<H", f.read(2))  # read in sub_73DE20, length of string
+        texture_name = f.read(name_length).decode("ascii")  # read at 0073DEA3
         print("# Texture name:", texture_name)
         if dump:
             self.texture_name = texture_name
-
-        unk3, = struct.unpack("b", f.read(1))
+        
+        unk3, = struct.unpack("b", f.read(1))  # read at 00453462
         if unk3 != 2:
             error_message = error_message = "unk3 is %s, not 2, 0x%x %s, %s, %s" % (
             unk3, f.tell() - 1, base_name, self.name, model_number)
@@ -380,15 +388,17 @@ class MDRObject:
             print(error_message)
         else:
             print("unk3 is %s (always 2?) 0x%x %s, %s, %s" % (unk3, f.tell() - 1, base_name, self.name, model_number))
-
+        # read 4, 11 starting at 0045347B
         print("# Start unknown section of 176 bytes, has something to do with collision box", "0x%x" % f.tell())
-        for i in range(0, 38):
+        for i in range(0, 35):
             unk, = struct.unpack("f", f.read(4))
             self.collision_data.append(unk)
             if verbose:
                 print("# 0x%x [%i] %f" % (f.tell() - 4, i, unk))
+        unk = struct.unpack("fff", f.read(12))  # read at 004535D7
+        print("# 0x%x %f %f %f" % (f.tell() - 12, *unk))  # read at 004535D7
         self.bbox_x_min, self.bbox_x_max, self.bbox_y_min, self.bbox_y_max, self.bbox_z_min, self.bbox_z_max = struct.unpack("ffffff", f.read(24))
-        print("# Bound box min/max")
+        print("# Bound box min/max")  # read at 004535E7
         print("# xmin ", self.bbox_x_min)
         print("# xmax ", self.bbox_x_max)
         print("# ymin ", self.bbox_y_min)
@@ -399,10 +409,10 @@ class MDRObject:
 
         ###############################################
         print("# Start vertices at 0x%x" % f.tell())
-        vertex_floats, = struct.unpack("<I", f.read(4))
-        print("# Vertex count:", vertex_floats / 3)
+        vertex_floats, = struct.unpack("<I", f.read(4))  # read at 004535FB
+        print("# Vertex count:", int(vertex_floats / 3))
 
-        for i in range(0, int(vertex_floats / 3)):
+        for i in range(0, int(vertex_floats / 3)):  # read at 0045373D
             if not dump:
                 f.read(12)
             else:
@@ -412,10 +422,10 @@ class MDRObject:
         ###############################################
 
         print("# Start vertex normals at 0x%x" % f.tell())
-        normal_count, = struct.unpack("<I", f.read(4))
-        print("# Normals count:", normal_count / 3)  # 3 per vertex
+        normal_count, = struct.unpack("<I", f.read(4))  # read at 0045361D
+        print("# Normals count:", int(normal_count / 3))  # 3 per vertex
 
-        for i in range(0, int(normal_count / 3)):
+        for i in range(0, int(normal_count / 3)):  # read at 00453727
             if not dump:
                 f.read(6)
             else:
@@ -426,7 +436,7 @@ class MDRObject:
         print("# End normals", "0x%x" % f.tell())
         ###############################################
 
-        unk, = struct.unpack("<I", f.read(4))
+        unk, = struct.unpack("<I", f.read(4))  # read at 00453649
         if unk != 0:
             print("# Parsing footer, count:", unk)
             print(f.name, self.name)
@@ -434,5 +444,4 @@ class MDRObject:
                 print(struct.unpack("<fff", f.read(12)))
                 length, = struct.unpack("<I", f.read(4))
                 f.read(length * 4)
-        print("# End model ##############################################################")
-        f.read(1)
+        print("# End model 0x%x ##############################################################" % f.tell())
