@@ -104,7 +104,10 @@ def save(operator, context, filepath, var_float=1.0, path_mode='AUTO'):
             for f in me.polygons:
                 index_array.append((f.vertices[0], f.vertices[1], f.vertices[2]))
 
-            uv_layer = me.uv_layers.active.data  #TODO check to see if this exists
+            if len(me.uv_layers) == 0:
+                operator.report({'ERROR'}, "Object %s is missing a texture map" % ob.name)
+                return {'CANCELLED'}
+            uv_data = me.uv_layers.active.data  # TODO check to see if this exists
 
             uv_array = [None] * len(me.vertices)
             mdr_obj.uv_array = uv_array
@@ -126,7 +129,7 @@ def save(operator, context, filepath, var_float=1.0, path_mode='AUTO'):
                 # print("Polygon", poly.index)
                 for li in poly.loop_indices:
                     vi = me.loops[li].vertex_index
-                    uv = uv_layer[li].uv
+                    uv = uv_data[li].uv
                     # print("    Loop index %i (Vertex %i) - UV %f %f" % (li, vi, uv.x, uv.y))
                     mdr_obj.uv_array[vi] = uv
             # for i in range(0, len(mdr_obj.uv_array)):
