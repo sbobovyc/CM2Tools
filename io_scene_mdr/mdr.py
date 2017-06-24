@@ -77,13 +77,8 @@ def read_material(f):
     print("# Unknown constant", unknown_constant)
     print("# End material", "0x%x" % f.tell())
 
-    material = {}
-    material["unknown_constant"] = unknown_constant
-    material["ambient_color"] = ambient_color
-    material["diffuse_color"] = diffuse_color
-    material["specular_color"] = specular_color
-    material["shininess"] = shininess
-    material["alpha_constant"] = alpha_constant
+    material = {"unknown_constant": unknown_constant, "ambient_color": ambient_color, "diffuse_color": diffuse_color,
+                "specular_color": specular_color, "shininess": shininess, "alpha_constant": alpha_constant}
     return material
 
 
@@ -110,9 +105,10 @@ class MDR:
     def write(self, filepath):
         with open(filepath, "wb") as f:
             self.num_models = len(self.objects)
-            f.write(struct.pack("<Ix", self.num_models))
-            model_number = 0
+            f.write(struct.pack("<I", self.num_models))
+
             for o in self.objects:
+                f.write(struct.pack('x'))
                 f.write(struct.pack("<H", len(o.name)))
                 f.write(struct.pack("%is" % len(o.name), o.name))
                 f.write(struct.pack("b", 2))  # unk0
@@ -128,58 +124,34 @@ class MDR:
                 for uv in o.uv_array:
                     f.write(struct.pack("<ff", uv[0], uv[1]))
                 f.write(struct.pack('<I', len(o.uv_array)-1))  # last uv index
-                if model_number == 0:
-                    f.write(struct.pack('xxxx'))  # some unknown
-                    write_matrix(o.transform_matrix, f)
-                    write_matrix(o.inverse_transform_matrix, f)
-
-                    f.write(struct.pack("<I", len(o.anchor_points)))
-                    for anchor in o.anchor_points:
-                        name, m = anchor
-                        f.write(struct.pack("<H", len(name)))
-                        f.write(struct.pack("%is" % len(name), name))
-                        f.write(struct.pack("fff", *m[0][:3]))
-                        f.write(struct.pack("fff", *m[1][:3]))
-                        f.write(struct.pack("fff", *m[2][:3]))
-                        f.write(struct.pack("fff", *m[3][:3]))
-                    f.write(struct.pack('xx'))  # 2 bytes padding
-                    f.write(struct.pack(48 * 'x'))  # read_material
-                    f.write(struct.pack('xx'))  # 2 bytes padding
-
-                    # read_material
-                    f.write(struct.pack("ff", 0, 0))
-                    f.write(struct.pack("fff", 1.0, 1.0, 1.0))  # ambient color is hard coded to white
-                    f.write(struct.pack("fff", *o.material["diffuse_color"]))
-                    f.write(struct.pack("fff", *o.material["specular_color"]))
-                    f.write(struct.pack("f", o.material["shininess"]))
-                    f.write(struct.pack("f", o.material["alpha_constant"]))
-                else:
-                    f.write(struct.pack("<xxH", len(o.parent_name)))
+                # if model_number == 0:
+                f.write(struct.pack('xx'))  # some unknown
+                f.write(struct.pack("<H", len(o.parent_name)))
+                if len(o.parent_name) > 0:
                     f.write(struct.pack("%is" % len(o.parent_name), o.parent_name))
 
-                    write_matrix(o.transform_matrix, f)
-                    write_matrix(o.inverse_transform_matrix, f)
+                write_matrix(o.transform_matrix, f)
+                write_matrix(o.inverse_transform_matrix, f)
 
-                    f.write(struct.pack("<I", len(o.anchor_points)))
-                    for anchor in o.anchor_points:
-                        name, m = anchor
-                        f.write(struct.pack("<H", len(name)))
-                        f.write(struct.pack("%is" % len(name), name))
-                        f.write(struct.pack("fff", *m[0][:3]))
-                        f.write(struct.pack("fff", *m[1][:3]))
-                        f.write(struct.pack("fff", *m[2][:3]))
-                        f.write(struct.pack("fff", *m[3][:3]))
+                f.write(struct.pack("<I", len(o.anchor_points)))
+                for anchor in o.anchor_points:
+                    name, m = anchor
+                    f.write(struct.pack("<H", len(name)))
+                    f.write(struct.pack("%is" % len(name), name))
+                    f.write(struct.pack("fff", *m[0][:3]))
+                    f.write(struct.pack("fff", *m[1][:3]))
+                    f.write(struct.pack("fff", *m[2][:3]))
+                    f.write(struct.pack("fff", *m[3][:3]))
 
-                    # some unknown, probably actual material info
-                    for i in range(0, 15):
-                        f.write(struct.pack("f", 0.0))
-                    f.write(struct.pack("fff", 1.0, 1.0, 1.0))  # ambient color is hard coded to white
-                    f.write(struct.pack("fff", *o.material["diffuse_color"]))
-                    f.write(struct.pack("fff", *o.material["specular_color"]))
-                    f.write(struct.pack("f", o.material["shininess"]))
-                    f.write(struct.pack("f", o.material["alpha_constant"]))
+                f.write(struct.pack(60 * 'x'))  # unknown
 
-                f.write(struct.pack("<I", 0))  # unk2
+                f.write(struct.pack("fff", 1.0, 1.0, 1.0))  # ambient color is hard coded to white
+                f.write(struct.pack("fff", *o.material["diffuse_color"]))
+                f.write(struct.pack("fff", *o.material["specular_color"]))
+                f.write(struct.pack("f", o.material["shininess"]))
+                f.write(struct.pack("f", o.material["alpha_constant"]))
+                f.write(struct.pack("f", 0))
+
                 f.write(struct.pack("<H", len(o.texture_name)))
                 f.write(struct.pack("%is" % len(o.texture_name), o.texture_name))
                 f.write(struct.pack("b", 2))  # unk3
@@ -195,10 +167,6 @@ class MDR:
                 for norm in o.vertex_normal_array:
                     f.write(struct.pack("<hhh", norm[0], norm[1], norm[2]))
                 f.write(struct.pack("<I", 0))  # no footer
-                if model_number < self.num_models-1:
-                    f.write(struct.pack('x'))
-
-                model_number += 1
 
 
 class MDRObject:
@@ -256,13 +224,6 @@ class MDRObject:
             print("unk0 is %s (always 2?) 0x%x %s, %s, %s" % (unk0, f.tell() - 1, base_name, self.name, model_number))
             
         print("# Start unknown section of 176 bytes, has something to do with collision box", "0x%x" % f.tell())
-        # read 40 bytes, i.e. 10 floats
-        # then read 4 bytes
-        # for i in range(0, 4):
-        #   then read 4 bytes
-        #   then read 4 bytes
-        #   then read 4 bytes
-        #   then read 4 bytes
         self.collision_data = []
         for i in range(0, 10):
             unk, = struct.unpack("f", f.read(4))
@@ -328,18 +289,15 @@ class MDRObject:
         if uv_last_index != uv_in_section/2 - 1:
             print("Last uv index != uv_in_section/2 - 1")
 
-        #if model_number == 0:
-        #
-        #unk2, = struct.unpack("<H", f.read(2))  # read in sub_73DE20, length of string
-        #print("# Unknown uint16 0x%x, uint16 0x%x" % (unk1, unk2), "at 0x%x" % (f.tell() - 4))
         unk1, = struct.unpack("<H", f.read(2))  # read at 00453826, some kind of a counter?
+        print("# Unknown uint16 unk1 0x%x" % unk1, "at 0x%x" % (f.tell() - 4))
         length, = struct.unpack("<H", f.read(2))
         self.parent_name = f.read(length).decode("ascii")
         print("# %s, parent name:" % self.name, self.parent_name, hex(f.tell()))
         
         self.transform_matrix = read_matrix(f)  # read at 004532C1
         self.inverse_transform_matrix = read_matrix(f)  # read at 004532D1
-        # TODO resume REing from here
+
         anchor_point_count, = struct.unpack("<I", f.read(4))  # read at 004532DF
         print("# Read 4 bytes, object count: ", anchor_point_count)
 
@@ -350,29 +308,23 @@ class MDRObject:
             m = read_matrix(f)  # read at 00453311
             self.anchor_points.append((anchor_name, m))
         print("# End list of anchor points", "0x%x" % f.tell())
-        # 3 times
+
+        print("# Start unknown data ", "0x%x" % f.tell())
         for i in range(0, 3):
             f.read(1)  # always 0, read at 00453347, saved at 0045335B
             f.read(1)  # always 0, read at 00453365, saved at 00453378
-            # read 4 at 00453380
-            # read 4 at 00453395
-            f.read(4)
-            f.read(4)
+            f.read(4)  # read at 00453380
+            f.read(4)  # read at 00453395
 
-        # 3 times
         for i in range(0, 3):
-            f.read(1)
-            f.read(1)
-            f.read(4)
-            f.read(4)
-        # read 1 at 004533CE, saved at 004533E2
-        # read 1 at 004533EC
-        # read 4 at 00453407
-        # read 4 at 0045341C
-        print("# random garbage? ", "0x%x" % f.tell())
+            f.read(1)  # read at 004533CE, saved at 004533E2
+            f.read(1)  # read 1 at 004533EC
+            f.read(4)  # read 4 at 00453407
+            f.read(4)  # read 4 at 0045341C
+
+        print("# End unknown data ", "0x%x" % f.tell())
         
         self.material = read_material(f)  # read at 0045343F, sub_5CE790
-        print("# End section", "0x%x" % f.tell())
 
         name_length, = struct.unpack("<H", f.read(2))  # read in sub_73DE20, length of string
         texture_name = f.read(name_length).decode("ascii")  # read at 0073DEA3
@@ -407,7 +359,6 @@ class MDRObject:
         print("# zmax ", self.bbox_z_max)
         print("# Finished unknown section", "0x%x" % f.tell())
 
-        ###############################################
         print("# Start vertices at 0x%x" % f.tell())
         vertex_floats, = struct.unpack("<I", f.read(4))  # read at 004535FB
         print("# Vertex count:", int(vertex_floats / 3))
@@ -419,7 +370,6 @@ class MDRObject:
                 x, y, z = struct.unpack("fff", f.read(12))
                 self.vertex_array.append((x, y, z))
         print("# End vertices", "0x%x" % f.tell())
-        ###############################################
 
         print("# Start vertex normals at 0x%x" % f.tell())
         normal_count, = struct.unpack("<I", f.read(4))  # read at 0045361D
@@ -434,13 +384,12 @@ class MDRObject:
                     print("# vn [%i] %i %i %i" % (i, nx, ny, nz))
                 self.vertex_normal_array.append((nx, ny, nz))
         print("# End normals", "0x%x" % f.tell())
-        ###############################################
 
-        unk, = struct.unpack("<I", f.read(4))  # read at 00453649
-        if unk != 0:
-            print("# Parsing footer, count:", unk)
+        footer_counter, = struct.unpack("<I", f.read(4))  # read at 00453649
+        if footer_counter != 0:
+            print("# Parsing footer, count:", footer_counter)
             print(f.name, self.name)
-            for i in range(0, unk):
+            for i in range(0, footer_counter):
                 print(struct.unpack("<fff", f.read(12)))
                 length, = struct.unpack("<I", f.read(4))
                 f.read(length * 4)
