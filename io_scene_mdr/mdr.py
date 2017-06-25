@@ -73,8 +73,8 @@ def read_material(f):
     print("# Shininess", shininess)  # GL_SHININESS
     alpha_constant, = struct.unpack("f", f.read(4))
     print("# Alpha constant", alpha_constant)
-    unknown_constant, = struct.unpack("f", f.read(4))
-    print("# Unknown constant", unknown_constant)
+    unknown_constant, = struct.unpack("<I", f.read(4))
+    print("# Unknown constant", unknown_constant)  # saved at 005CE8A6
     print("# End material", "0x%x" % f.tell())
 
     material = {"unknown_constant": unknown_constant, "ambient_color": ambient_color, "diffuse_color": diffuse_color,
@@ -124,7 +124,7 @@ class MDR:
                 for uv in o.uv_array:
                     f.write(struct.pack("<ff", uv[0], uv[1]))
                 f.write(struct.pack('<I', len(o.uv_array)-1))  # last uv index
-                # if model_number == 0:
+
                 f.write(struct.pack('xx'))  # some unknown
                 f.write(struct.pack("<H", len(o.parent_name)))
                 if len(o.parent_name) > 0:
@@ -138,10 +138,7 @@ class MDR:
                     name, m = anchor
                     f.write(struct.pack("<H", len(name)))
                     f.write(struct.pack("%is" % len(name), name))
-                    f.write(struct.pack("fff", *m[0][:3]))
-                    f.write(struct.pack("fff", *m[1][:3]))
-                    f.write(struct.pack("fff", *m[2][:3]))
-                    f.write(struct.pack("fff", *m[3][:3]))
+                    write_matrix(m, f)
 
                 f.write(struct.pack(60 * 'x'))  # unknown
 
@@ -150,7 +147,7 @@ class MDR:
                 f.write(struct.pack("fff", *o.material["specular_color"]))
                 f.write(struct.pack("f", o.material["shininess"]))
                 f.write(struct.pack("f", o.material["alpha_constant"]))
-                f.write(struct.pack("f", 0))
+                f.write(struct.pack("I", 0))
 
                 f.write(struct.pack("<H", len(o.texture_name)))
                 f.write(struct.pack("%is" % len(o.texture_name), o.texture_name))
@@ -241,7 +238,7 @@ class MDRObject:
                 if verbose:
                     print("# 0x%x [%i] %f" % (f.tell()-4, i, unk))
         unk = struct.unpack("fff", f.read(12))
-        print("# %f %f %f" % (unk))  # saved at 00453B3C
+        print("# 0x%x %f %f %f" % (f.tell() - 12, *unk))  # saved at 00453B3C
         self.bbox_x_min, self.bbox_x_max, self.bbox_y_min, self.bbox_y_max, self.bbox_z_min, self.bbox_z_max = struct.unpack("ffffff", f.read(24))  # saved at 00453B4C
         print("# Bound box min/max")
         print("# xmin ", self.bbox_x_min)

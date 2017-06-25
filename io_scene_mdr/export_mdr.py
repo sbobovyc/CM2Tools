@@ -107,15 +107,14 @@ def save(operator, context, filepath, var_float=1.0, path_mode='AUTO'):
             if len(me.uv_layers) == 0:
                 operator.report({'ERROR'}, "Object %s is missing a texture map" % ob.name)
                 return {'CANCELLED'}
-            uv_data = me.uv_layers.active.data  # TODO check to see if this exists
+            uv_data = me.uv_layers.active.data
 
             uv_array = [None] * len(me.vertices)
             mdr_obj.uv_array = uv_array
             vertex_array = []
             vertex_normal_array = []
             for vert in me.vertices:
-                # uv_array.append((uv_layer[vert.index].uv[0], uv_layer[vert.index].uv[1]))
-                x,y,z = matrix_world * vert.co.xyz
+                x, y, z = matrix_world * vert.co.xyz
                 vertex_array.append((x, y, z))
                 norm = (int(vert.normal[0]*(2**15 - 1)), int(vert.normal[1]*(2**15 - 1)), int(vert.normal[2]*(2**15 - 1)))
                 vertex_normal_array.append(norm)
@@ -163,8 +162,8 @@ def save(operator, context, filepath, var_float=1.0, path_mode='AUTO'):
             mdr_obj.vertex_array = vertex_array
             mdr_obj.vertex_normal_array = vertex_normal_array
             mdr_obj.texture_name = diffuse_texture_file.encode('ascii')
-            mdr_obj.transform_matrix = matrix_world
-            mdr_obj.inverse_transform_matrix = matrix_world.inverted()
+            mdr_obj.transform_matrix = matrix_world.transposed()  # Blender stores matrix in row-major, mdr uses column major
+            mdr_obj.inverse_transform_matrix = matrix_world.inverted().transposed()
             mdr_obj.material["diffuse_color"] = tuple(ob.material_slots[0].material.diffuse_color)
             mdr_obj.material["specular_color"] = tuple(ob.material_slots[0].material.specular_color)
             mdr_obj.material["shininess"] = (ob.material_slots[0].material.specular_hardness / 511.0) * 128.0  # GL_SHININESS is 0 to 128
