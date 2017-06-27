@@ -168,6 +168,9 @@ def save(operator, context, filepath, var_float=1.0, path_mode='AUTO'):
             mdr_obj.material["specular_color"] = tuple(ob.material_slots[0].material.specular_color)
             mdr_obj.material["shininess"] = (ob.material_slots[0].material.specular_hardness / 511.0) * 128.0  # GL_SHININESS is 0 to 128
             mdr_obj.material["alpha_constant"] = me.materials[0].texture_slots[0].alpha_factor
+            for i,key in enumerate(bpy.data.materials.keys()):
+                if ob.material_slots[0].material == bpy.data.materials[key]:
+                    mdr_obj.material["material_id"] = i
 
             print("Exporting %i faces" % len(mdr_obj.index_array))
             print("Exporting %i texture coords" % len(mdr_obj.uv_array))

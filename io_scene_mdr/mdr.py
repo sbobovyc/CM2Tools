@@ -73,11 +73,11 @@ def read_material(f):
     print("# Shininess", shininess)  # GL_SHININESS
     alpha_constant, = struct.unpack("f", f.read(4))
     print("# Alpha constant", alpha_constant)
-    unknown_constant, = struct.unpack("<I", f.read(4))
-    print("# Unknown constant", unknown_constant)  # saved at 005CE8A6
+    material_id, = struct.unpack("<I", f.read(4))
+    print("# Material id", material_id)  # saved at 005CE8A6
     print("# End material", "0x%x" % f.tell())
 
-    material = {"unknown_constant": unknown_constant, "ambient_color": ambient_color, "diffuse_color": diffuse_color,
+    material = {"material_id": material_id, "ambient_color": ambient_color, "diffuse_color": diffuse_color,
                 "specular_color": specular_color, "shininess": shininess, "alpha_constant": alpha_constant}
     return material
 
@@ -147,7 +147,7 @@ class MDR:
                 f.write(struct.pack("fff", *o.material["specular_color"]))
                 f.write(struct.pack("f", o.material["shininess"]))
                 f.write(struct.pack("f", o.material["alpha_constant"]))
-                f.write(struct.pack("I", 0))
+                f.write(struct.pack("I", o.material["material_id"]))
 
                 f.write(struct.pack("<H", len(o.texture_name)))
                 f.write(struct.pack("%is" % len(o.texture_name), o.texture_name))
@@ -326,6 +326,10 @@ class MDRObject:
         name_length, = struct.unpack("<H", f.read(2))  # read in sub_73DE20, length of string
         texture_name = f.read(name_length).decode("ascii")  # read at 0073DEA3
         print("# Texture name:", texture_name)
+        # print("Texture\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s" % (
+        # self.material["material_id"], texture_name, self.material["ambient_color"], self.material["diffuse_color"],
+        # self.material["specular_color"], self.material["shininess"], self.material["alpha_constant"], self.name))
+
         if dump:
             self.texture_name = texture_name
         
