@@ -182,18 +182,18 @@ def load(context, use_shadeless, use_smooth_shading, use_transform, use_recursiv
         #http://www.scratchapixel.com/lessons/mathematics-physics-for-computer-graphics/geometry/transforming-normals
         if use_transform:
             print("Translating", ob.name)
-            forward_matrix = mdr_ob.transform_matrix
-            backward_matrix = mdr_ob.inverse_transform_matrix
-            m = Matrix(backward_matrix)
+            transform_matrix = mdr_ob.transform_matrix
+            inverse_transform_matrix = mdr_ob.inverse_transform_matrix
+            m = Matrix(inverse_transform_matrix)
             print(m)
             ob.data.transform(m)
-
-            m = Matrix(forward_matrix)
-            ob.matrix_world = m
 
             for v in ob.data.vertices:
                 n = v.normal
                 v.normal = m.inverted().transposed() * n
+
+            m = Matrix(transform_matrix)
+            ob.matrix_world = m
 
         for anchor in mdr_ob.anchor_points:
             print(anchor)
