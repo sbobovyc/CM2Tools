@@ -116,7 +116,8 @@ def save(operator, context, filepath, var_float=1.0, path_mode='AUTO'):
             for vert in me.vertices:
                 x, y, z = matrix_world * vert.co.xyz
                 vertex_array.append((x, y, z))
-                norm = (int(vert.normal[0]*(2**15 - 1)), int(vert.normal[1]*(2**15 - 1)), int(vert.normal[2]*(2**15 - 1)))
+                nx, ny, nz = matrix_world.inverted().transposed() * vert.normal
+                norm = (int(nx*(2**15 - 1)), int(ny*(2**15 - 1)), int(nz*(2**15 - 1)))
                 vertex_normal_array.append(norm)
 
             # for i, (face, blen_poly) in enumerate(zip(index_array, me.polygons)):
