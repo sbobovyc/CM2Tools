@@ -30,6 +30,7 @@ Run this script from "File->Import" menu and then load the desired MDR file.
 import bpy
 import os
 import math
+import numpy as np
 from bpy_extras.io_utils import unpack_list
 from bpy_extras.image_utils import load_image
 from mathutils import Matrix
@@ -182,18 +183,25 @@ def load(context, use_shadeless, use_smooth_shading, use_transform, use_recursiv
         #http://www.scratchapixel.com/lessons/mathematics-physics-for-computer-graphics/geometry/transforming-normals
         if use_transform:
             print("Translating", ob.name)
-            transform_matrix = mdr_ob.transform_matrix
-            inverse_transform_matrix = mdr_ob.inverse_transform_matrix
-            m = Matrix(inverse_transform_matrix)
-            print(m)
-            ob.data.transform(m)
+            transform_matrix = Matrix(mdr_ob.transform_matrix)
+            inverse_transform_matrix = Matrix(mdr_ob.inverse_transform_matrix)
 
-            for v in ob.data.vertices:
-                n = v.normal
-                v.normal = m.inverted().transposed() * n
+            # in some cases, object transform is not used
+            if np.sum(np.abs(transform_matrix.inverted() - inverse_transform_matrix)) < 0.01:
+                ob.data.transform(inverse_transform_matrix)
 
-            m = Matrix(transform_matrix)
-            ob.matrix_world = m
+                for v in ob.data.vertices:
+                    n = v.normal
+                    v.normal = inverse_transform_matrix.inverted().transposed() * n
+
+                ob.matrix_world = transform_matrix
+            else:
+                print("Transform mismatch!")
+                # print(transform_matrix)
+                # print(transform_matrix.inverted())
+                # print(inverse_transform_matrix)
+                # print(inverse_transform_matrix.inverted())
+                print(transform_matrix - inverse_transform_matrix.inverted())
 
         for anchor in mdr_ob.anchor_points:
             print(anchor)
