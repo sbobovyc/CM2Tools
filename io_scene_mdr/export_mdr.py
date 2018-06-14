@@ -116,7 +116,9 @@ def save(operator, context, filepath, var_float=1.0, path_mode='AUTO'):
             for vert in me.vertices:
                 x, y, z = matrix_world * vert.co.xyz
                 vertex_array.append((x, y, z))
-                nx, ny, nz = matrix_world.inverted().transposed() * vert.normal
+                transformed_normal = matrix_world.inverted().transposed() * vert.normal
+                # normalized transformed normal in case the object was scaled
+                nx, ny, nz = transformed_normal.normalized()
                 norm = (int(nx*(2**15 - 1)), int(ny*(2**15 - 1)), int(nz*(2**15 - 1)))
                 vertex_normal_array.append(norm)
 
