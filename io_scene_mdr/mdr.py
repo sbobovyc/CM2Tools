@@ -95,7 +95,7 @@ class MDR:
 
     def read(self, outdir):
         with open(self.filepath, "rb") as f:
-            self.num_models, = struct.unpack("<I", f.read(4))
+            self.num_models, = struct.unpack("<I", f.read(4))  # read from 008A04D8
             print("# number of models", self.num_models)
             for i in range(0, self.num_models):
                 mdr_obj = MDRObject()
@@ -112,8 +112,20 @@ class MDR:
                 f.write(struct.pack("<H", len(o.name)))
                 f.write(struct.pack("%is" % len(o.name), o.name))
                 f.write(struct.pack("b", 2))  # unk0
-                f.write(struct.pack("f", 1.0))  # if the next 176 bytes are all 0, the object can not be moved in the editor
-                f.write(struct.pack('x' * 148))
+                if len(o.meta_data1) != 0:
+                    for i in range(0, 11):
+                        f.write(struct.pack("f", o.meta_data1[i]))
+                    if len(o.meta_data2) != 0:
+                        for i in range(0, 24):
+                            print("writing", o.meta_data2[i])
+                            f.write(struct.pack("f", o.meta_data2[i]))
+                        # f.write(struct.pack('x' * 12))
+                        f.write(struct.pack("fff", *o.meta_data_unk1))
+                    else:
+                        f.write(struct.pack('x' * 108))
+                else:
+                    f.write(struct.pack("f", 1.0))  # if the next 176 bytes are all 0, the object can not be moved in the editor
+                    f.write(struct.pack('x' * 148))
                 f.write(struct.pack("ff", o.bbox_x_min, o.bbox_x_max))
                 f.write(struct.pack("ff", o.bbox_y_min, o.bbox_y_max))
                 f.write(struct.pack("ff", o.bbox_z_min, o.bbox_z_max))
@@ -152,8 +164,14 @@ class MDR:
                 f.write(struct.pack("<H", len(o.texture_name)))
                 f.write(struct.pack("%is" % len(o.texture_name), o.texture_name))
                 f.write(struct.pack("b", 2))  # unk3
-                f.write(struct.pack("f", 1.0))  # if the next 176 bytes are all 0, the object can not be moved in the editor
-                f.write(struct.pack('x' * 148))
+                if len(o.meta_data3) != 0:
+                    for i in range(0, 35):
+                        f.write(struct.pack("f", o.meta_data3[i]))
+                    # f.write(struct.pack('x' * 12))
+                    f.write(struct.pack("fff", *o.meta_data_unk2))
+                else:
+                    f.write(struct.pack("f", 1.0))  # if the next 176 bytes are all 0, the object can not be moved in the editor
+                    f.write(struct.pack('x' * 148))
                 f.write(struct.pack("ff", o.bbox_x_min, o.bbox_x_max))
                 f.write(struct.pack("ff", o.bbox_y_min, o.bbox_y_max))
                 f.write(struct.pack("ff", o.bbox_z_min, o.bbox_z_max))
@@ -211,34 +229,46 @@ class MDRObject:
         self.name = f.read(name_length).decode("ascii")  # saved at 0073E054
         print("# submodel name:", self.name)
 
-        unk0, = struct.unpack("b", f.read(1))  # saved at 004539C7
+        print("# Start collision metadata")
+        self.meta_data1 = []
+        self.meta_data2 = []
+        self.meta_data3 = []
+        self.meta_data_unk1 = None
+        self.meta_data_unk2 = None
+        # read one byte, but it is saved as 4 byte in memory
+        unk0, = struct.unpack("b", f.read(1))  # saved at 004539BB
+        print("# 0x%x %i" % (f.tell() - 1, unk0))
         if unk0 != 2:
             error_message = "unk0 is %s, not 2, 0x%x %s, %s, %s" % (
             unk0, f.tell() - 1, base_name, self.name, model_number)
             # raise ValueError(error_message)
             print(error_message)
-        else:
-            print("unk0 is %s (always 2?) 0x%x %s, %s, %s" % (unk0, f.tell() - 1, base_name, self.name, model_number))
-            
+        # else:
+        #     print("unk0 is %s (always 2?) 0x%x %s, %s, %s" % (unk0, f.tell() - 1, base_name, self.name, model_number))
+
         print("# Start unknown section of 176 bytes, has something to do with collision box", "0x%x" % f.tell())
-        self.collision_data = []
-        for i in range(0, 10):
+
+        # start reading at 004539D1
+        for i in range(0, 11):
             unk, = struct.unpack("f", f.read(4))
-            self.collision_data.append(unk)
+            self.meta_data1.append(unk)
             if verbose:
                 print("# 0x%x [%i] %f" % (f.tell()-4, i, unk))
-        unk, = struct.unpack("f", f.read(4))  # saved at 00453AAA
-        self.collision_data.append(unk)
+
         if verbose:
-            print("# 0x%x %f" % (f.tell()-4, unk))        
+            print("################")
+
+        # loop at 00453ACF
         for i in range(0, 6):
             for j in range(0, 4):
                 unk, = struct.unpack("f", f.read(4))
-                self.collision_data.append(unk)
+                self.meta_data2.append(unk)
                 if verbose:
                     print("# 0x%x [%i] %f" % (f.tell()-4, i, unk))
+
         unk = struct.unpack("fff", f.read(12))
-        print("# 0x%x %f %f %f" % (f.tell() - 12, *unk))  # saved at 00453B3C
+        self.meta_data_unk1 = unk
+        print("# 0x%x %f %f %f (unk)" % (f.tell() - 12, *unk))  # saved at 00453B3C
         self.bbox_x_min, self.bbox_x_max, self.bbox_y_min, self.bbox_y_max, self.bbox_z_min, self.bbox_z_max = struct.unpack("ffffff", f.read(24))  # saved at 00453B4C
         print("# Bound box min/max")
         print("# xmin ", self.bbox_x_min)
@@ -345,10 +375,11 @@ class MDRObject:
         print("# Start unknown section of 176 bytes, has something to do with collision box", "0x%x" % f.tell())
         for i in range(0, 35):
             unk, = struct.unpack("f", f.read(4))
-            self.collision_data.append(unk)
+            self.meta_data3.append(unk)
             if verbose:
                 print("# 0x%x [%i] %f" % (f.tell() - 4, i, unk))
         unk = struct.unpack("fff", f.read(12))  # read at 004535D7
+        self.meta_data_unk2 = unk
         print("# 0x%x %f %f %f" % (f.tell() - 12, *unk))  # read at 004535D7
         self.bbox_x_min, self.bbox_x_max, self.bbox_y_min, self.bbox_y_max, self.bbox_z_min, self.bbox_z_max = struct.unpack("ffffff", f.read(24))
         print("# Bound box min/max")  # read at 004535E7

@@ -175,6 +175,26 @@ def save(operator, context, filepath, var_float=1.0, path_mode='AUTO'):
                 if ob.material_slots[0].material == bpy.data.materials[key]:
                     mdr_obj.material["material_id"] = i
 
+            mdr_obj.meta_data1 = []
+            mdr_obj.meta_data2 = []
+            mdr_obj.meta_data3 = []
+            for i in range(0, 11):
+                try:
+                    mdr_obj.meta_data1.append(ob["meta1_%i" % i])
+                except KeyError as e:
+                    print(e)
+            for i in range(0, 24):
+                try:
+                    mdr_obj.meta_data2.append(ob["meta2_%i" % i])
+                except KeyError as e:
+                    print(e)
+            for i in range(0, 35):
+                try:
+                    mdr_obj.meta_data3.append(ob["meta3_%i" % i])
+                except KeyError as e:
+                    print(e)
+            mdr_obj.meta_data_unk1 = ob["meta_unk1"]
+            mdr_obj.meta_data_unk2 = ob["meta_unk2"]
             print("Exporting %i faces" % len(mdr_obj.index_array))
             print("Exporting %i texture coords" % len(mdr_obj.uv_array))
             print("Exporting %i vertices" % len(mdr_obj.vertex_array))

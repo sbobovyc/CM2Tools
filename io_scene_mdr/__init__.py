@@ -21,8 +21,8 @@
 bl_info = {
     "name": "Combat Mission MDR format",
     "author": "Stanislav Bobovych",
-    "version": (0, 9, 0),
-    "blender": (2, 77, 0),
+    "version": (0, 9, 1),
+    "blender": (2, 79, 0),
     "location": "File > Import-Export",
     "description": "Import-Export MDR, Import MDR mesh, UV's, materials and textures",
     "warning": "",
