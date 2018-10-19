@@ -316,12 +316,22 @@ class MDRObject:
         if uv_last_index != uv_in_section/2 - 1:
             print("Last uv index != uv_in_section/2 - 1")
 
-        unk1, = struct.unpack("<H", f.read(2))  # read at 00453826, some kind of a counter?
-        print("# Unknown uint16 unk1 0x%x" % unk1, "at 0x%x" % (f.tell() - 4))
-        length, = struct.unpack("<H", f.read(2))
-        self.parent_name = f.read(length).decode("ascii")
-        print("# %s, parent name:" % self.name, self.parent_name, hex(f.tell()))
-        
+        count, = struct.unpack("<H", f.read(2))  # read at 00453826, some kind of a counter?
+        print("# Unknown uint16 unk1 0x%x" % count, "at 0x%x" % (f.tell() - 4))
+        if count != 0:
+            for i in range(0, count):
+                length, = struct.unpack("<H", f.read(2))
+                self.parent_name = f.read(length).decode("ascii")
+                meta_count, = struct.unpack("<H", f.read(2))
+                f.read(meta_count)
+                print("# %s, parent name:" % self.name, self.parent_name, hex(f.tell()))
+                if i == count-1:
+                    f.read(2)
+        else:
+            length, = struct.unpack("<H", f.read(2))
+            self.parent_name = f.read(length).decode("ascii")
+            print("# %s, parent name:" % self.name, self.parent_name, hex(f.tell()))
+
         self.transform_matrix = read_matrix(f)  # read at 004532C1
         self.inverse_transform_matrix = read_matrix(f)  # read at 004532D1
 
