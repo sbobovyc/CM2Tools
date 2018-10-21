@@ -112,6 +112,7 @@ class MDR:
                 f.write(struct.pack("<H", len(o.name)))
                 f.write(struct.pack("%is" % len(o.name), o.name))
                 f.write(struct.pack("b", 2))  # unk0
+                #TODO write out foliage_meta
                 if len(o.meta_data1) != 0:
                     for i in range(0, 11):
                         f.write(struct.pack("f", o.meta_data1[i]))
@@ -209,6 +210,7 @@ class MDRObject:
         self.bbox_z_max = 0
         self.transform_matrix = None
         self.inverse_transform_matrix = None
+        self.foliage_meta = {}
 
     def read(self, base_name, num_models, f, model_number, outdir, dump=True, verbose=False):
         ########
@@ -316,19 +318,20 @@ class MDRObject:
         if uv_last_index != uv_in_section/2 - 1:
             print("Last uv index != uv_in_section/2 - 1")
 
-        count, = struct.unpack("<H", f.read(2))  # read at 00453826, some kind of a counter?
+        count, = struct.unpack("<H", f.read(2))  # read at 00453826, used by CMSF2 for foliage metadata
         print("# Unknown uint16 unk1 0x%x" % count, "at 0x%x" % (f.tell() - 4))
         if count != 0:
             for i in range(0, count):
                 length, = struct.unpack("<H", f.read(2))
-                self.parent_name = f.read(length).decode("ascii")
+                meta_name = f.read(length).decode("ascii")
                 meta_count, = struct.unpack("<H", f.read(2))
-                f.read(meta_count)
-                print("# %s, parent name:" % self.name, self.parent_name, hex(f.tell()))
-                if i == count-1:
-                    f.read(2)
-        else:
-            length, = struct.unpack("<H", f.read(2))
+                meta_data = struct.unpack('b'*meta_count, f.read(meta_count))
+                print("# foliage_meta ", meta_name, *meta_data)
+                self.foliage_meta[meta_name] = meta_data
+
+        length, = struct.unpack("<H", f.read(2))
+        self.parent_name = ""
+        if length > 0:
             self.parent_name = f.read(length).decode("ascii")
             print("# %s, parent name:" % self.name, self.parent_name, hex(f.tell()))
 

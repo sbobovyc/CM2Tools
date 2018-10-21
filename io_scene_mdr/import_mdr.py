@@ -37,7 +37,7 @@ from mathutils import Matrix
 from .mdr import MDR
 
 
-def load(context, use_shadeless, use_smooth_shading, use_transform, use_recursive_search, filepath, relpath=None):
+def load(context, use_shadeless, use_smooth_shading, use_transform, use_recursive_search, use_metadata, filepath, relpath=None):
     print(filepath)
     base_name = os.path.splitext(os.path.basename(filepath))[0]
     outdir = ""
@@ -223,13 +223,17 @@ def load(context, use_shadeless, use_smooth_shading, use_transform, use_recursiv
             anchor_ob.parent = ob
             anchor_ob.matrix_parent_inverse = ob.matrix_world.inverted()
 
-        for i in range(0, len(mdr_ob.meta_data1)):
-            ob["meta1_%i" % i] = mdr_ob.meta_data1[i]
-        for i in range(0, len(mdr_ob.meta_data2)):
-            ob["meta2_%i" % i] = mdr_ob.meta_data2[i]
-        for i in range(0, len(mdr_ob.meta_data3)):
-            ob["meta3_%i" % i] = mdr_ob.meta_data3[i]
-        ob["meta_unk1"] = mdr_ob.meta_data_unk1
-        ob["meta_unk2"] = mdr_ob.meta_data_unk2
+        # metadata
+        if use_metadata:
+            for i in range(0, len(mdr_ob.meta_data1)):
+                ob["meta1_%i" % i] = mdr_ob.meta_data1[i]
+            for i in range(0, len(mdr_ob.meta_data2)):
+                ob["meta2_%i" % i] = mdr_ob.meta_data2[i]
+            for i in range(0, len(mdr_ob.meta_data3)):
+                ob["meta3_%i" % i] = mdr_ob.meta_data3[i]
+            ob["meta_unk1"] = mdr_ob.meta_data_unk1
+            ob["meta_unk2"] = mdr_ob.meta_data_unk2
+            for meta in mdr_ob.foliage_meta:
+                ob["foliage_meta_%s" % meta] = mdr_ob.foliage_meta[meta]
         context.scene.objects.link(ob)
     return {'FINISHED'}
