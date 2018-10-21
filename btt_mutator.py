@@ -14,6 +14,7 @@ along with this program. If not, see <http://www.gnu.org/licenses/>.
 
 import argparse
 import os
+import sys
 import struct
 import shutil
 
@@ -37,7 +38,11 @@ if __name__ == "__main__":
     with open(args.file, 'rb') as f:
         f.seek(0x10)
         map_type, = struct.unpack("H", f.read(2))
-        print("Input map type:", CM_CONST_ID[map_type])
+        try:
+            print("Input map type:", CM_CONST_ID[map_type])
+        except:
+            print("Invalid map type: 0x%x" % map_type)
+            sys.exit(1)
 
     outfile_full_path = os.path.join(outdir, outfile)
     shutil.copy(args.file, outfile_full_path)
