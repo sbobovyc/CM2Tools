@@ -176,7 +176,9 @@ def load(context, use_shadeless, use_smooth_shading, use_transform, use_recursiv
     for ob, mdr_ob in zip(new_objects, m.objects):
         # parent objects
         if ob != new_objects[0]:
-            parent = next((x for x in new_objects if x.name == mdr_ob.parent_name))
+            # Blender does not allow objects with the same names, so have to remove postfix to find correct parent
+            demangled_parent_name = mdr_ob.parent_name.split('.')[0]
+            parent = next((x for x in new_objects if x.name.split('.')[0] == demangled_parent_name))
             ob.parent = parent
             ob.matrix_parent_inverse = parent.matrix_world.inverted()  # http://blender.stackexchange.com/questions/9200/make-object-a-a-parent-of-object-b-via-python
         #TODO multiply normals by transpose of the inverse of the transform_matrix
