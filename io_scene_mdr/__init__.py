@@ -88,6 +88,11 @@ class ImportMDR(bpy.types.Operator, ImportHelper, IOOBJOrientationHelper):
         description="Recursively search for object textures",
         default=True,
     )
+    use_metadata = BoolProperty(
+        name="Import metadata",
+        description="Import metadata into object custom properties",
+        default=False,
+    )
     
     def execute(self, context):
         # print("Selected: " + context.active_object.name)
@@ -124,6 +129,7 @@ class ImportMDR(bpy.types.Operator, ImportHelper, IOOBJOrientationHelper):
         layout.prop(self, "use_smooth_shading")
         layout.prop(self, "use_transform")
         layout.prop(self, "use_recursive_search")
+        layout.prop(self, "use_metadata")
 
 class ExportMDR(bpy.types.Operator, ExportHelper, IOOBJOrientationHelper):
     """Save a Combat Mission MDR File"""
@@ -144,7 +150,11 @@ class ExportMDR(bpy.types.Operator, ExportHelper, IOOBJOrientationHelper):
             soft_min=0.0, soft_max=1.0,
             default=1.0,
             )
-
+    use_metadata = BoolProperty(
+        name="Export metadata",
+        description="Export metadata from object custom properties",
+        default=False,
+    )
     path_mode = path_reference_mode
 
     check_extension = True
