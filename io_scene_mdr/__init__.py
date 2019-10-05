@@ -22,7 +22,7 @@ bl_info = {
     "name": "Combat Mission MDR format",
     "author": "Stanislav Bobovych",
     "version": (0, 9, 2),
-    "blender": (2, 79, 0),
+    "blender": (2, 80, 0),
     "location": "File > Import-Export",
     "description": "Import-Export MDR, Import MDR mesh, UV's, materials and textures",
     "warning": "",
@@ -48,16 +48,14 @@ from bpy.props import (
 from bpy_extras.io_utils import (
         ImportHelper,
         ExportHelper,
-        orientation_helper_factory,
+        orientation_helper,
         path_reference_mode,
         axis_conversion,
         )
 
 
-IOOBJOrientationHelper = orientation_helper_factory("IOOBJOrientationHelper", axis_forward='-Z', axis_up='Y')
-
-
-class ImportMDR(bpy.types.Operator, ImportHelper, IOOBJOrientationHelper):
+@orientation_helper(axis_forward='-Z', axis_up='Y')
+class ImportMDR(bpy.types.Operator, ImportHelper):
     """Load a Combat Mission MDR File"""
     bl_idname = "import_scene.mdr"
     bl_label = "Import MDR"
@@ -82,6 +80,11 @@ class ImportMDR(bpy.types.Operator, ImportHelper, IOOBJOrientationHelper):
         name="Use transform",
         description="Apply transform to object",
         default=False,
+    )
+    use_materials = BoolProperty(
+        name="Import materials",
+        description="Import materials",
+        default=True,
     )
     use_recursive_search = BoolProperty(
         name="Recursive image search",
@@ -128,10 +131,13 @@ class ImportMDR(bpy.types.Operator, ImportHelper, IOOBJOrientationHelper):
         row.prop(self, "use_shadeless")
         layout.prop(self, "use_smooth_shading")
         layout.prop(self, "use_transform")
+        layout.prop(self, "use_materials")
         layout.prop(self, "use_recursive_search")
         layout.prop(self, "use_metadata")
 
-class ExportMDR(bpy.types.Operator, ExportHelper, IOOBJOrientationHelper):
+
+@orientation_helper(axis_forward='-Z', axis_up='Y')
+class ExportMDR(bpy.types.Operator, ExportHelper):
     """Save a Combat Mission MDR File"""
 
     bl_idname = "export_scene.mdr"
@@ -187,18 +193,29 @@ def menu_func_export(self, context):
     self.layout.operator(ExportMDR.bl_idname, text="CMx2 MDR (.mdr)")
 
 
-def register():
-    bpy.utils.register_module(__name__)
+classes = (
+    ImportMDR,
+    ExportMDR,
+)
 
-    bpy.types.INFO_MT_file_import.append(menu_func_import)
-    bpy.types.INFO_MT_file_export.append(menu_func_export)
+
+def register():
+    for cls in classes:
+        bpy.utils.register_class(cls)
+
+    bpy.types.TOPBAR_MT_file_import.append(menu_func_import)
+    bpy.types.TOPBAR_MT_file_export.append(menu_func_export)
 
 
 def unregister():
     bpy.utils.unregister_module(__name__)
 
-    bpy.types.INFO_MT_file_import.remove(menu_func_import)
-    bpy.types.INFO_MT_file_export.remove(menu_func_export)
+    bpy.types.TOPBAR_MT_file_import.remove(menu_func_import)
+    bpy.types.TOPBAR_MT_file_export.remove(menu_func_export)
+
+    for cls in classes:
+            bpy.utils.unregister_class(cls)
+
 
 if __name__ == "__main__":
     register()
