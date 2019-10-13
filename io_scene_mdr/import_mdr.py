@@ -39,6 +39,8 @@ from .mdr import MDR
 
 def load(context, use_shadeless, use_smooth_shading, use_transform, use_materials, use_recursive_search, use_metadata, filepath, relpath=None):
     debug_logs = False
+    if debug_logs:
+        print(filepath)
     base_name = os.path.splitext(os.path.basename(filepath))[0]
     outdir = ""
     m = MDR(filepath, base_name, False, False, False)
@@ -48,7 +50,8 @@ def load(context, use_shadeless, use_smooth_shading, use_transform, use_material
     new_materials = {}  # put new material object here
 
     for mdr_ob in m.objects:
-        print(mdr_ob.name)
+        if debug_logs:
+            print(mdr_ob.name)
         verts_loc = mdr_ob.vertex_array
         faces = mdr_ob.index_array
         me = bpy.data.meshes.new(mdr_ob.name)
@@ -186,7 +189,8 @@ def load(context, use_shadeless, use_smooth_shading, use_transform, use_material
         #TODO multiply normals by transpose of the inverse of the transform_matrix
         #http://www.scratchapixel.com/lessons/mathematics-physics-for-computer-graphics/geometry/transforming-normals
         if use_transform:
-            print("Translating", ob.name)
+            if debug_logs:
+                print("Translating", ob.name)
             transform_matrix = Matrix(mdr_ob.transform_matrix)
             inverse_transform_matrix = Matrix(mdr_ob.inverse_transform_matrix)
 
@@ -205,17 +209,20 @@ def load(context, use_shadeless, use_smooth_shading, use_transform, use_material
                 # print(transform_matrix.inverted())
                 # print(inverse_transform_matrix)
                 # print(inverse_transform_matrix.inverted())
-                print(transform_matrix - inverse_transform_matrix.inverted())
+                if debug_logs:
+                    print(transform_matrix - inverse_transform_matrix.inverted())
 
         view_layer = bpy.context.view_layer
         collection = view_layer.active_layer_collection.collection
 
         for anchor in mdr_ob.anchor_points:
-            print(anchor)
+            if debug_logs:
+                print(anchor)
             name = anchor[0]
             matrix = anchor[1]
             m = Matrix(matrix)
-            print(m)
+            if debug_logs:
+                print(m)
 
             anchor_ob = bpy.data.objects.new(name, None)
             collection.objects.link(anchor_ob)
@@ -224,7 +231,8 @@ def load(context, use_shadeless, use_smooth_shading, use_transform, use_material
             anchor_ob.matrix_world = m
             anchor_ob.matrix_local = anchor_ob.matrix_local @ Matrix.Rotation(math.radians(90), 4, "Y")
 
-            print(ob, anchor_ob)
+            if debug_logs:
+                print(ob, anchor_ob)
             anchor_ob.parent = ob
             anchor_ob.matrix_parent_inverse = ob.matrix_world.inverted()
 
