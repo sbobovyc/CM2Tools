@@ -31,6 +31,7 @@ import bpy
 import os
 import math
 import numpy as np
+from bpy_extras import node_shader_utils
 from bpy_extras.io_utils import unpack_list
 from bpy_extras.image_utils import load_image
 from mathutils import Matrix
@@ -79,7 +80,7 @@ def load(context, use_shadeless, use_smooth_shading, use_transform, use_material
         me.polygons.foreach_set("loop_total", faces_loop_total)
 
         me.validate(clean_customdata=False)  # *Very* important to not remove lnors here!
-        me.update(calc_loop_triangles=True, calc_edges=True)
+        me.update(calc_edges=True)
 
         me.uv_layers.new()
         blen_uvs = me.uv_layers[0]
@@ -212,7 +213,7 @@ def load(context, use_shadeless, use_smooth_shading, use_transform, use_material
 
                 for v in ob.data.vertices:
                     n = v.normal
-                    v.normal = inverse_transform_matrix.inverted().transposed() * n
+                    v.normal = inverse_transform_matrix.inverted().transposed() @ n
 
                 ob.matrix_world = transform_matrix
             else:
