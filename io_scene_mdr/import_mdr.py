@@ -38,13 +38,13 @@ from mathutils import Matrix
 from .mdr import MDR
 
 
-def load(context, use_shadeless, use_smooth_shading, use_transform, use_materials, use_recursive_search, use_metadata, filepath, relpath=None):
-    debug_logs = False
+def load(context, use_shadeless, use_smooth_shading, use_transform, use_materials, use_recursive_search, use_metadata, use_debug, filepath, relpath=None):
+    debug_logs = use_debug
     if debug_logs:
         print(filepath)
     base_name = os.path.splitext(os.path.basename(filepath))[0]
     outdir = ""
-    m = MDR(filepath, base_name, False, False, False)
+    m = MDR(filepath, base_name, False, False, debug_logs)
     m.read(outdir)
 
     new_objects = []  # put new objects here
@@ -109,7 +109,8 @@ def load(context, use_shadeless, use_smooth_shading, use_transform, use_material
                 # mat.transparency_method = "Z_TRANSPARENCY"
                 # mat.alpha = 0.0
                 tex = bpy.data.textures.new('DiffuseTex', type='IMAGE')
-                print("Load diffuse texture", mdr_ob.texture_name)
+                if debug_logs:
+                    print("Load diffuse texture", mdr_ob.texture_name)
                 img_found = False
                 for im in bpy.data.images:
                     if im.name == mdr_ob.texture_name+".bmp":

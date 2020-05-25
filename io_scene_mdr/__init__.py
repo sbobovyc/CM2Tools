@@ -96,6 +96,11 @@ class ImportMDR(bpy.types.Operator, ImportHelper):
         description="Import metadata into object custom properties",
         default=False,
     )
+    use_debug = BoolProperty(
+        name="Debug",
+        description="Print debug messages",
+        default=False,
+    )
     
     def execute(self, context):
         # print("Selected: " + context.active_object.name)
@@ -134,6 +139,7 @@ class ImportMDR(bpy.types.Operator, ImportHelper):
         layout.prop(self, "use_materials")
         layout.prop(self, "use_recursive_search")
         layout.prop(self, "use_metadata")
+        layout.prop(self, "use_debug")
 
 
 @orientation_helper(axis_forward='-Z', axis_up='Y')

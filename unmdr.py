@@ -21,7 +21,7 @@ along with this program. If not, see <http://www.gnu.org/licenses/>.
 import os
 import sys
 import argparse
-
+import logging
 
 sys.path.append("io_scene_mdr") # doing this instead of import to avoid executing __init__.py
 from mdr import MDR
@@ -101,12 +101,14 @@ if __name__ == "__main__":
 
     filepath = None
     if args.file is None:
-        print("Error, supply a file as parameter")
+        logging.error("Error, supply a file as parameter")
         sys.exit()
     else:
         filepath = args.file
+
+    logging.basicConfig(level=logging.INFO)
     
-    print("# ", filepath)
+    logging.info(filepath)
     base_name = os.path.splitext(os.path.basename(filepath))[0]
     m = MDR(filepath, base_name, args.parse_only, args.parse_only, args.verbose)
     m.read(args.outdir)

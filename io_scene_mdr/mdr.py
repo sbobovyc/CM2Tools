@@ -21,15 +21,9 @@
 # Script copyright (C) Stanislav Bobovych
 # Contributors: Stanislav Bobovych
 
-"""
-This script imports a Wavefront OBJ files to Blender.
-
-Usage:
-Run this script from "File->Import" menu and then load the desired MDR file.
-"""
-
 import numpy as np
 import struct
+import logging
 from pprint import pprint
 
 
@@ -96,7 +90,7 @@ class MDR:
     def read(self, outdir):
         with open(self.filepath, "rb") as f:
             self.num_models, = struct.unpack("<I", f.read(4))  # read from 008A04D8
-            print("# number of models", self.num_models)
+            logging.info("number of models %i", self.num_models)
             for i in range(0, self.num_models):
                 mdr_obj = MDRObject()
                 mdr_obj.read(self.base_name, self.num_models, f, i, outdir, not self.parse_only, self.verbose)
@@ -118,7 +112,7 @@ class MDR:
                         f.write(struct.pack("f", o.meta_data1[i]))
                     if len(o.meta_data2) != 0:
                         for i in range(0, 24):
-                            print("writing", o.meta_data2[i])
+                            loggin.ingo("writing %f", o.meta_data2[i])
                             f.write(struct.pack("f", o.meta_data2[i]))
                         # f.write(struct.pack('x' * 12))
                         f.write(struct.pack("fff", *o.meta_data_unk1))
@@ -223,15 +217,14 @@ class MDRObject:
         # normals
         ####
         self.base_name = base_name
-        print("# Start model %i" % model_number, "at 0x%x" % f.tell(),
-              "##############################################################")
+        logging.info("Start model %i at 0x%x", model_number, f.tell())
         f.read(1)  # read at 004537A0
         name_length, = struct.unpack("<H", f.read(2))
-        print("# submodel name length:", name_length)
+        logging.info("submodel name length: %i", name_length)
         self.name = f.read(name_length).decode("ascii")  # saved at 0073E054
-        print("# submodel name:", self.name)
+        logging.info("submodel name: %s", self.name)
 
-        print("# Start collision metadata")
+        logging.info("Start collision metadata")
         self.meta_data1 = []
         self.meta_data2 = []
         self.meta_data3 = []
@@ -239,7 +232,7 @@ class MDRObject:
         self.meta_data_unk2 = None
         # read one byte, but it is saved as 4 byte in memory
         unk0, = struct.unpack("b", f.read(1))  # saved at 004539BB
-        print("# 0x%x %i" % (f.tell() - 1, unk0))
+        logging.info("0x%x %i", f.tell() - 1, unk0)
         if unk0 != 2:
             error_message = "unk0 is %s, not 2, 0x%x %s, %s, %s" % (
             unk0, f.tell() - 1, base_name, self.name, model_number)
@@ -248,43 +241,40 @@ class MDRObject:
         # else:
         #     print("unk0 is %s (always 2?) 0x%x %s, %s, %s" % (unk0, f.tell() - 1, base_name, self.name, model_number))
 
-        print("# Start unknown section of 176 bytes, has something to do with collision box", "0x%x" % f.tell())
+        logging.info("Start unknown section of 176 bytes, has something to do with collision box 0x%x" , f.tell())
 
         # start reading at 004539D1
         for i in range(0, 11):
             unk, = struct.unpack("f", f.read(4))
             self.meta_data1.append(unk)
-            if verbose:
-                print("# 0x%x [%i] %f" % (f.tell()-4, i, unk))
+            logging.debug("0x%x [%i] %f", f.tell() - 4, i, unk)
 
-        if verbose:
-            print("################")
+        logging.debug("################")
 
         # loop at 00453ACF
         for i in range(0, 6):
             for j in range(0, 4):
                 unk, = struct.unpack("f", f.read(4))
                 self.meta_data2.append(unk)
-                if verbose:
-                    print("# 0x%x [%i] %f" % (f.tell()-4, i, unk))
+                logging.debug("0x%x [%i] %f", f.tell() - 4, i, unk)
 
         unk = struct.unpack("fff", f.read(12))
         self.meta_data_unk1 = unk
-        print("# 0x%x %f %f %f (unk)" % (f.tell() - 12, *unk))  # saved at 00453B3C
+        logging.info("0x%x %f %f %f (unk)" % (f.tell() - 12, *unk))  # saved at 00453B3C
         self.bbox_x_min, self.bbox_x_max, self.bbox_y_min, self.bbox_y_max, self.bbox_z_min, self.bbox_z_max = struct.unpack("ffffff", f.read(24))  # saved at 00453B4C
-        print("# Bound box min/max")
-        print("# xmin ", self.bbox_x_min)
-        print("# xmax ", self.bbox_x_max)
-        print("# ymin ", self.bbox_y_min)
-        print("# ymax ", self.bbox_y_max)
-        print("# zmin ", self.bbox_z_min)
-        print("# zmax ", self.bbox_z_max)
-        print("# Finished unknown section", "0x%x" % f.tell())
+        logging.info("Bound box min/max")
+        logging.info("xmin %s", self.bbox_x_min)
+        logging.info("xmax %s", self.bbox_x_max)
+        logging.info("ymin %s", self.bbox_y_min)
+        logging.info("ymax %s", self.bbox_y_max)
+        logging.info("zmin %s", self.bbox_z_min)
+        logging.info("zmax %s", self.bbox_z_max)
+        logging.info("Finished unknown section 0x%x", f.tell())
 
         ###############################################
-        print("# Start face vertex indices at 0x%x" % f.tell())
+        logging.info("Start face vertex indices at 0x%x", f.tell())
         face_count, = struct.unpack("<I", f.read(4))  # read at 004537C5
-        print("# Face count:", int(face_count / 3))
+        logging.info("Face count: %i", int(face_count / 3))
 
         for i in range(0, int(face_count / 3)):  # read at 0045397B
             if not dump:
@@ -293,13 +283,13 @@ class MDRObject:
                 v0, v1, v2 = struct.unpack("<HHH", f.read(6))
                 # print("f %i/%i %i/%i %i/%i" % (v0+1,v0+1,v1+1,v1+1,v2+1,v2+1))
                 self.index_array.append((v0, v1, v2))
-        print("# Finished face vertex indices", "0x%x" % f.tell())
+        logging.info("Finished face vertex indices 0x%x" % f.tell())
         ###############################################
 
         ###############################################
-        print("# Start UVs at 0x%x" % f.tell())
+        logging.info("Start UVs at 0x%x" , f.tell())
         uv_in_section, = struct.unpack("<I", f.read(4))
-        print("# UV in section:", int(uv_in_section / 2))
+        logging.info("UV in section: %i", int(uv_in_section / 2))
 
         for i in range(0, int(uv_in_section / 2)):  # read at 00453965
             if not dump:
@@ -307,33 +297,32 @@ class MDRObject:
             else:
                 u, v = struct.unpack("<ff", f.read(8))
                 self.uv_array.append((u, v))
-                if verbose:
-                    print("# vt", i, u,v)
-        print("# Finish UV section:", "0x%x" % f.tell())
+                logging.debug("vt %i %f %f", i, u, v)
+        logging.info("Finish UV section: 0x%x", f.tell())
         ###############################################
 
-        print("# Start unknown section 1")
+        logging.info("Start unknown section 1")
         uv_last_index, = struct.unpack("<I", f.read(4))
-        print("# Last uv index %i" % uv_last_index, "at 0x%x" % (f.tell()-4))  # saved at 0045381B, right after UV data
+        logging.info("Last uv index %i at 0x%x", uv_last_index, f.tell() - 4)  # saved at 0045381B, right after UV data
         if uv_last_index != uv_in_section/2 - 1:
-            print("Last uv index != uv_in_section/2 - 1")
+            logging.info("Last uv index != uv_in_section/2 - 1")
 
         count, = struct.unpack("<H", f.read(2))  # read at 00453826, used by CMSF2 for foliage metadata
-        print("# Unknown uint16 unk1 0x%x" % count, "at 0x%x" % (f.tell() - 4))
+        logging.info("Unknown uint16 unk1 0x%x at 0x%x", count, f.tell() - 4)
         if count != 0:
             for i in range(0, count):
                 length, = struct.unpack("<H", f.read(2))
                 meta_name = f.read(length).decode("ascii")
                 meta_count, = struct.unpack("<H", f.read(2))
                 meta_data = struct.unpack('b'*meta_count, f.read(meta_count))
-                print("# foliage_meta ", meta_name, *meta_data)
+                logging.info("foliage_meta ", meta_name, *meta_data)
                 self.foliage_meta[meta_name] = meta_data
 
         length, = struct.unpack("<H", f.read(2))
         self.parent_name = ""
         if length > 0:
             self.parent_name = f.read(length).decode("ascii")
-            print("# %s, parent name:" % self.name, self.parent_name, hex(f.tell()))
+            logging.info("%s, parent name: %s, 0x%x", self.name, self.parent_name, f.tell())
 
         self.transform_matrix = read_matrix(f)  # read at 004532C1
         self.inverse_transform_matrix = read_matrix(f)  # read at 004532D1
