@@ -24,28 +24,19 @@
 import numpy as np
 import struct
 import logging
-from pprint import pprint
-
-
-def print4x4matrix(matrix):
-    print("[")
-    for row in matrix:
-        print("[{0: .2f}, {1: .2f}, {2: .2f}, {3: .2f}]".format(row[0], row[1], row[2], row[3]))
-    print("]")
-
 
 def read_matrix(f):
-    print("# Start reading matrix", "0x%x" % f.tell())
+    logging.info("Start reading matrix 0x%x", f.tell())
     mat = np.identity(4)
 
     # 3x4 matrix, column order
     for column in range(0, 4):
         for row in range(0, 3):
             value, = struct.unpack("f", f.read(4))
-            print("# 0x%x [%i] %f" % (f.tell()-4, column, value))
+            logging.info("0x%x [%i] %f", f.tell() - 4, column, value)
             mat[row][column] = value
-    print("# This is a transform matrix:")
-    print(mat)
+    logging.info("This is a transform matrix:")
+    logging.info(mat)
     return mat
 
 
@@ -56,20 +47,20 @@ def write_matrix(mat, f):
 
 
 def read_material(f):
-    print("# Start reading material", "0x%x" % f.tell())
+    logging.info("Start reading material 0x%x", f.tell())
     ambient_color = struct.unpack("fff", f.read(4 * 3))
-    print("# Ambient color", ambient_color)  # GL_AMBIENT
+    logging.info("Ambient color %s", ambient_color)  # GL_AMBIENT
     diffuse_color = struct.unpack("fff", f.read(4 * 3))
-    print("# Diffuse color", diffuse_color)  # GL_DIFFUSE
+    logging.info("Diffuse color %s", diffuse_color)  # GL_DIFFUSE
     specular_color = struct.unpack("fff", f.read(4 * 3))
-    print("# Specular color", specular_color)  # GL_SPECULAR
+    logging.info("Specular color %s", specular_color)  # GL_SPECULAR
     shininess, = struct.unpack("f", f.read(4))
-    print("# Shininess", shininess)  # GL_SHININESS
+    logging.info("Shininess %f", shininess)  # GL_SHININESS
     alpha_constant, = struct.unpack("f", f.read(4))
-    print("# Alpha constant", alpha_constant)
+    logging.info("Alpha constant %f", alpha_constant)
     material_id, = struct.unpack("<I", f.read(4))
-    print("# Material id", material_id)  # saved at 005CE8A6
-    print("# End material", "0x%x" % f.tell())
+    logging.info("Material id %i", material_id)  # saved at 005CE8A6
+    logging.info("End material 0x%x", f.tell())
 
     material = {"material_id": material_id, "ambient_color": ambient_color, "diffuse_color": diffuse_color,
                 "specular_color": specular_color, "shininess": shininess, "alpha_constant": alpha_constant}
@@ -328,17 +319,17 @@ class MDRObject:
         self.inverse_transform_matrix = read_matrix(f)  # read at 004532D1
 
         anchor_point_count, = struct.unpack("<I", f.read(4))  # read at 004532DF
-        print("# Read 4 bytes, object count: ", anchor_point_count)
+        logging.info("Read 4 bytes, object count: %i", anchor_point_count)
 
         for i in range(0, anchor_point_count):
             name_length, = struct.unpack("<H", f.read(2))
             anchor_name = f.read(name_length).decode("ascii")
-            print("Anchor point %i: %s" % (i, anchor_name))
+            logging.info("Anchor point %i: %s", i, anchor_name)
             m = read_matrix(f)  # read at 00453311
             self.anchor_points.append((anchor_name, m))
-        print("# End list of anchor points", "0x%x" % f.tell())
+        logging.info("End list of anchor points 0x%x", f.tell())
 
-        print("# Start unknown data ", "0x%x" % f.tell())
+        logging.info("Start unknown data 0x%x", f.tell())
         for i in range(0, 3):
             f.read(1)  # always 0, read at 00453347, saved at 0045335B
             f.read(1)  # always 0, read at 00453365, saved at 00453378
@@ -351,13 +342,13 @@ class MDRObject:
             f.read(4)  # read 4 at 00453407
             f.read(4)  # read 4 at 0045341C
 
-        print("# End unknown data ", "0x%x" % f.tell())
+        logging.info("End unknown data 0x%x", f.tell())
         
         self.material = read_material(f)  # read at 0045343F, sub_5CE790
 
         name_length, = struct.unpack("<H", f.read(2))  # read in sub_73DE20, length of string
         texture_name = f.read(name_length).decode("ascii")  # read at 0073DEA3
-        print("# Texture name:", texture_name)
+        logging.info("Texture name: %s", texture_name)
         # print("Texture\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s" % (
         # self.material["material_id"], texture_name, self.material["ambient_color"], self.material["diffuse_color"],
         # self.material["specular_color"], self.material["shininess"], self.material["alpha_constant"], self.name))
@@ -370,32 +361,32 @@ class MDRObject:
             error_message = error_message = "unk3 is %s, not 2, 0x%x %s, %s, %s" % (
             unk3, f.tell() - 1, base_name, self.name, model_number)
             # raise ValueError(error_message)
-            print(error_message)
+            logging.info(error_message)
         else:
-            print("unk3 is %s (always 2?) 0x%x %s, %s, %s" % (unk3, f.tell() - 1, base_name, self.name, model_number))
+            logging.info("unk3 is %s (always 2?) 0x%x %s, %s, %s", unk3, f.tell() - 1, base_name, self.name, model_number)
         # read 4, 11 starting at 0045347B
-        print("# Start unknown section of 176 bytes, has something to do with collision box", "0x%x" % f.tell())
+        logging.info("Start unknown section of 176 bytes, has something to do with collision box 0x%x", f.tell())
         for i in range(0, 35):
             unk, = struct.unpack("f", f.read(4))
             self.meta_data3.append(unk)
             if verbose:
-                print("# 0x%x [%i] %f" % (f.tell() - 4, i, unk))
+                logging.info("0x%x [%i] %f", f.tell() - 4, i, unk)
         unk = struct.unpack("fff", f.read(12))  # read at 004535D7
         self.meta_data_unk2 = unk
-        print("# 0x%x %f %f %f" % (f.tell() - 12, *unk))  # read at 004535D7
+        logging.info("0x%x %f %f %f", f.tell() - 12, *unk)  # read at 004535D7
         self.bbox_x_min, self.bbox_x_max, self.bbox_y_min, self.bbox_y_max, self.bbox_z_min, self.bbox_z_max = struct.unpack("ffffff", f.read(24))
-        print("# Bound box min/max")  # read at 004535E7
-        print("# xmin ", self.bbox_x_min)
-        print("# xmax ", self.bbox_x_max)
-        print("# ymin ", self.bbox_y_min)
-        print("# ymax ", self.bbox_y_max)
-        print("# zmin ", self.bbox_z_min)
-        print("# zmax ", self.bbox_z_max)
-        print("# Finished unknown section", "0x%x" % f.tell())
+        logging.info("Bound box min/max")  # read at 004535E7
+        logging.info("xmin %f", self.bbox_x_min)
+        logging.info("xmax %f", self.bbox_x_max)
+        logging.info("ymin %f", self.bbox_y_min)
+        logging.info("ymax %f", self.bbox_y_max)
+        logging.info("zmin %f", self.bbox_z_min)
+        logging.info("zmax %f", self.bbox_z_max)
+        logging.info("Finished unknown section 0x%x", f.tell())
 
-        print("# Start vertices at 0x%x" % f.tell())
+        logging.info("Start vertices at 0x%x", f.tell())
         vertex_floats, = struct.unpack("<I", f.read(4))  # read at 004535FB
-        print("# Vertex count:", int(vertex_floats / 3))
+        logging.info("Vertex count: %i", int(vertex_floats / 3))
 
         for i in range(0, int(vertex_floats / 3)):  # read at 0045373D
             if not dump:
@@ -403,28 +394,27 @@ class MDRObject:
             else:
                 x, y, z = struct.unpack("fff", f.read(12))
                 self.vertex_array.append((x, y, z))
-        print("# End vertices", "0x%x" % f.tell())
+        logging.info("End vertices 0x%x", f.tell())
 
-        print("# Start vertex normals at 0x%x" % f.tell())
+        logging.info("Start vertex normals at 0x%x", f.tell())
         normal_count, = struct.unpack("<I", f.read(4))  # read at 0045361D
-        print("# Normals count:", int(normal_count / 3))  # 3 per vertex
+        logging.info("Normals count: %i", int(normal_count / 3))  # 3 per vertex
 
         for i in range(0, int(normal_count / 3)):  # read at 00453727
             if not dump:
                 f.read(6)
             else:
                 nx, ny, nz = struct.unpack("<hhh", f.read(6))
-                if verbose:
-                    print("# vn [%i] %i %i %i" % (i, nx, ny, nz))
+                logging.debug("vn [%i] %i %i %i", i, nx, ny, nz)
                 self.vertex_normal_array.append((nx, ny, nz))
-        print("# End normals", "0x%x" % f.tell())
+        logging.info("End normals 0x%x", f.tell())
 
         footer_counter, = struct.unpack("<I", f.read(4))  # read at 00453649
         if footer_counter != 0:
-            print("# Parsing footer, count:", footer_counter)
-            print(f.name, self.name)
+            logging.info("Parsing footer, count: %i", footer_counter)
+            logging.info(f.name, self.name)
             for i in range(0, footer_counter):
-                print(struct.unpack("<fff", f.read(12)))
+                logging.info(struct.unpack("<fff", f.read(12)))
                 length, = struct.unpack("<I", f.read(4))
                 f.read(length * 4)
-        print("# End model 0x%x ##############################################################" % f.tell())
+        logging.info("End model 0x%x", f.tell())
