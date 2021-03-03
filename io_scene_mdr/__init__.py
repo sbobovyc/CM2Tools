@@ -62,41 +62,41 @@ class ImportMDR(bpy.types.Operator, ImportHelper):
     bl_options = {'PRESET', 'UNDO'}
 
     filename_ext = ".mdr"
-    filter_glob = StringProperty(
+    filter_glob: StringProperty(
             default="*.mdr",
             options={'HIDDEN'},
             )
-    use_shadeless = BoolProperty(
+    use_shadeless: BoolProperty(
         name="Shadeless materials",
         description="Make all materials shadeless",
         default=False,
     )
-    use_smooth_shading = BoolProperty(
+    use_smooth_shading: BoolProperty(
         name="Use smooth shading",
         description="Make all objects use smooth shading",
         default=True,
     )
-    use_transform  = BoolProperty(
+    use_transform: BoolProperty(
         name="Use transform",
         description="Apply transform to object",
         default=False,
     )
-    use_materials = BoolProperty(
+    use_materials: BoolProperty(
         name="Import materials",
         description="Import materials",
         default=True,
     )
-    use_recursive_search = BoolProperty(
+    use_recursive_search: BoolProperty(
         name="Recursive image search",
         description="Recursively search for object textures",
         default=True,
     )
-    use_metadata = BoolProperty(
+    use_metadata: BoolProperty(
         name="Import metadata",
         description="Import metadata into object custom properties",
         default=False,
     )
-    use_debug = BoolProperty(
+    use_debug: BoolProperty(
         name="Debug",
         description="Print debug messages",
         default=False,
@@ -151,23 +151,23 @@ class ExportMDR(bpy.types.Operator, ExportHelper):
     bl_options = {'PRESET'}
 
     filename_ext = ".mdr"
-    filter_glob = StringProperty(
+    filter_glob: StringProperty(
             default="*.mdr",
             options={'HIDDEN'},
             )
-    var_float = FloatProperty(
+    var_float: FloatProperty(
             name="Variable float",
             description="Variable float for testing",
             min=0.0, max=1000.0,
             soft_min=0.0, soft_max=1.0,
             default=1.0,
             )
-    use_metadata = BoolProperty(
+    use_metadata: BoolProperty(
         name="Export metadata",
         description="Export metadata from object custom properties",
         default=False,
     )
-    path_mode = path_reference_mode
+    path_mode: path_reference_mode
 
     check_extension = True
 
