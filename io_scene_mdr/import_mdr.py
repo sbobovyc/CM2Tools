@@ -49,10 +49,11 @@ def load(context, use_shadeless, use_smooth_shading, use_transform, use_material
 
     new_objects = []  # put new objects here
     new_materials = {}  # put new material object here
+    nodal_material_wrap_map = {}
 
     for mdr_ob in m.objects:
         if debug_logs:
-            print(mdr_ob.name)
+            print("Object: ", mdr_ob.name)
         verts_loc = mdr_ob.vertex_array
         faces = mdr_ob.index_array
         me = bpy.data.meshes.new(mdr_ob.name)
@@ -95,20 +96,19 @@ def load(context, use_shadeless, use_smooth_shading, use_transform, use_material
             material_name = "%s_%i" % (mdr_ob.texture_name, mdr_ob.material["material_id"])
 
             if material_name in new_materials:
+                if debug_logs:
+                    print("Using existing material:", material_name)
                 mat = new_materials[material_name]
             else:
+                if debug_logs:
+                    print("Creating new material:", material_name)
                 mat = bpy.data.materials.new(material_name)
-                mat.use_nodes = True
-
-                texImage = mat.node_tree.nodes.new('ShaderNodeTexImage')
-                # mat.specular_shader = 'PHONG'
-                # mat.diffuse_intensity = 1.0
-                # mat.specular_intensity = 1.0
-                # mat.use_transparency = True
-                # mat.use_transparent_shadows = True
-                # mat.transparency_method = "Z_TRANSPARENCY"
-                # mat.alpha = 0.0
-                tex = bpy.data.textures.new('DiffuseTex', type='IMAGE')
+                ma_wrap = node_shader_utils.PrincipledBSDFWrapper(mat, is_readonly=False)
+                nodal_material_wrap_map[mat] = ma_wrap
+                ma_wrap.use_nodes = True
+                        
+#                texImage = mat.node_tree.nodes.new('ShaderNodeTexImage')
+#                tex = bpy.data.textures.new('DiffuseTex', type='IMAGE')
                 if debug_logs:
                     print("Load diffuse texture", mdr_ob.texture_name)
                 img_found = False
@@ -125,57 +125,64 @@ def load(context, use_shadeless, use_smooth_shading, use_transform, use_material
 
                 if image is not None:
                     #tex.image = image
-                    texImage.image = image
+                    #texImage.image = image
+                    ma_wrap.base_color_texture.image = image
                 else:
                     print("Could not load", mdr_ob.texture_name)
-                    mat.use_transparency = False
 
-                if use_shadeless:
-                    node = mat.node_tree.nodes['Principled BSDF']
-                    mat.node_tree.nodes.remove(node)
-                    mat.node_tree.nodes.new('ShaderNodeEmission')
-                    emission = mat.node_tree.nodes["Emission"]
-                    output = mat.node_tree.nodes["Material Output"]
-                    mat.node_tree.links.new(emission.inputs['Color'], texImage.outputs['Color'])
-                    mat.node_tree.links.new(output.inputs['Surface'], emission.outputs['Emission'])
-                else:
-                    bsdf = mat.node_tree.nodes["Principled BSDF"]
-                    mat.node_tree.links.new(bsdf.inputs['Base Color'], texImage.outputs['Color'])
+#                if use_shadeless:
+#                    node = mat.node_tree.nodes['Principled BSDF']
+#                    mat.node_tree.nodes.remove(node)
+#                    mat.node_tree.nodes.new('ShaderNodeEmission')
+#                    emission = mat.node_tree.nodes["Emission"]
+#                    output = mat.node_tree.nodes["Material Output"]
+#                    mat.node_tree.links.new(emission.inputs['Color'], texImage.outputs['Color'])
+#                    mat.node_tree.links.new(output.inputs['Surface'], emission.outputs['Emission'])
+#                else:
+#                    bsdf = mat.node_tree.nodes["Principled BSDF"]
+#                    mat.node_tree.links.new(bsdf.inputs['Base Color'], texImage.outputs['Color'])
 
                 # mtex.texture = tex
                 # mtex.texture_coords = 'UV'
                 # mtex.use_map_color_diffuse = True
                 # mtex.use_map_alpha = True
-                # print(mdr_ob.material)
-                # if "diffuse_color" in mdr_ob.material:
-                #     mat.diffuse_color = mdr_ob.material["diffuse_color"]
-                # if "specular_color" in mdr_ob.material:
-                #     mat.specular_color = mdr_ob.material["specular_color"]
-                # if "alpha_constant" in mdr_ob.material:
-                #     alpha_const = mdr_ob.material["alpha_constant"]
-                # else:
-                #     alpha_const = 1.0
-                # if "shininess" in mdr_ob.material:
-                #     mat.specular_hardness = (mdr_ob.material["shininess"]/128.0) * 511.0  # 511 is max hardness in Blender phong shader
-                # else:
-                #     mat.specular_hardness = 511.0
-                # print("Alpha const", alpha_const)
-                # mtex.alpha_factor = alpha_const
-                #
-                # norm_tex_name = mdr_ob.texture_name + "_normal map.bmp"
-                # norm_tex_path = os.path.join(os.path.dirname(filepath), norm_tex_name)
-                # print("Looking for", norm_tex_path)
-                # if os.path.isfile(norm_tex_path):
-                #         print("Load normal texture", norm_tex_name)
+                print(mdr_ob.material)
+                if "diffuse_color" in mdr_ob.material:
+                     ma_wrap.base_color = mdr_ob.material["diffuse_color"]
+                if "specular_color" in mdr_ob.material:
+                     #TODO PrincipalBSDF does not have specular color, check existing models
+                     ma_wrap.specular = sum(mdr_ob.material["specular_color"]) / 3.0
+                if "alpha_constant" in mdr_ob.material:
+                     alpha_const = mdr_ob.material["alpha_constant"]
+                else:
+                     alpha_const = 1.0
+                if "shininess" in mdr_ob.material:
+                     ma_wrap.specular = mdr_ob.material["shininess"]/128.0
+                else:
+                     mat.specular_hardness = 1.0
+
+                ma_wrap.alpha = alpha_const
+                #TODO alpha constant is not used by Blender if there is an alpha image
+                if image is not None and (alpha_const < 1.0 or image.depth == 32):
+                        print("Attempting to add alpha texture %s, channels %i" % (image.name, image.channels))
+                        ma_wrap.alpha_texture.image = image
+                        mat.blend_method = 'BLEND'
+                        #TODO this is a bit of a hack to get around textures that use 1 bit alpha
+                        mat.show_transparent_back = False
+                norm_tex_name = mdr_ob.texture_name + "_normal map.bmp"
+                norm_tex_path = os.path.join(os.path.dirname(filepath), norm_tex_name)
+                print("Looking for", norm_tex_path)
+                if os.path.isfile(norm_tex_path):
+                         print("Load normal texture", norm_tex_name)
                 #         norm_tex = bpy.data.textures.new('NormalTex', type='IMAGE')
-                #         img_found = False
-                #         for im in bpy.data.images:
-                #             if im.name == norm_tex_name:
-                #                 image = im
-                #                 img_found = True
-                #         if not img_found:
-                #             image = load_image(norm_tex_name, os.path.dirname(filepath))
-                #         #TODO recursively scan for normal texture
+                         img_found = False
+                         for im in bpy.data.images:
+                             if im.name == norm_tex_name:
+                                 image = im
+                                 img_found = True
+                         if not img_found:
+                             image = load_image(norm_tex_name, os.path.dirname(filepath))
+                         #TODO recursively scan for normal texture
                 #         norm_tex.image = image
                 #         norm_tex.use_normal_map = True
                 #         mnorm = mat.texture_slots.add()
@@ -184,11 +191,12 @@ def load(context, use_shadeless, use_smooth_shading, use_transform, use_material
                 #         mnorm.use_map_color_diffuse = False
                 #         mnorm.use_map_normal = True
                 #         mnorm.normal_factor = 1.0
-
+                         ma_wrap.normalmap_texture.image = image
                 new_materials[material_name] = mat
 
         ob = bpy.data.objects.new(me.name, me)
         if use_materials:
+            print("Transparent back", mat.name, mat.show_transparent_back)
             ob.data.materials.append(mat)
         new_objects.append(ob)
 
