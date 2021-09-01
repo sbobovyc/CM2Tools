@@ -38,7 +38,7 @@ class BrzFile:
         self.brz_file_list = []
         self.parallel = False
         
-    def unpack(self, outdir, parallel=False, verbose=False):
+    def unpack(self, outdir, parallel=False, verbose=False, list_only=False):
         self.parallel = parallel
         with open(self.path, "rb") as f:
             u1, self.file_count = struct.unpack("<II", f.read(8))
@@ -54,11 +54,11 @@ class BrzFile:
                 if verbose:
                     print(entry)
                 self.brz_file_list.append(entry)
-            if not self.parallel:
+            if not self.parallel and not list_only:
                 for i in range(0, self.file_count):
                     self.unpack_file(i, outdir, verbose)
                     update_progress(i/self.file_count)
-            else:
+            elif not list_only:
                 p = Pool()
                 m = Manager()
                 self.done_counter = m.Value(ctypes.c_ulong, 0)                
@@ -138,6 +138,7 @@ if __name__ == '__main__':
     parser.add_argument('filepath', nargs='?', help='BRZ file or directory')
     parser.add_argument('-x', '--extract', default=False, action='store_true', help="Unpack brz file")
     parser.add_argument('-c', '--compress', default=False, action='store_true', help="Pack files into brz")
+    parser.add_argument('-l', '--list', default=False, action='store_true', help="List files in brz")
     parser.add_argument('-o', '--outdir', default=os.getcwd(), help='Output directory')
     parser.add_argument('-v', '--verbose', default=False, action='store_true', help='Print info as files are unpacked')
     parser.add_argument('-p', '--parallel', default=False, action='store_true', help='Use multiple workers when extracting files (This feature is experimental and will fail if not used from Python script)')
@@ -146,11 +147,13 @@ if __name__ == '__main__':
 
     filepath = args.filepath
     outdir = args.outdir
-    if args.extract and not args.compress:
+    if args.list:
+        args.verbose = True
+    if args.extract or args.list and not args.compress:
         t0 = time.time()
-        BrzFile(filepath).unpack(outdir, args.parallel, args.verbose)
+        BrzFile(filepath).unpack(outdir, args.parallel, args.verbose, args.list)
         t1 = time.time()
-        print(t1 - t0)
+        print("Time: ", t1 - t0)
     elif args.compress and not args.extract:
         indir = os.path.split(filepath)[0]
         outfile = os.path.join(args.outdir, indir + ".brz")
