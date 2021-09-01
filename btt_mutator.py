@@ -17,9 +17,9 @@ import os
 import sys
 import struct
 import shutil
+from bidict import bidict
 
-CM_ID_CONST = {'CMSF':0x00, 'CMA':0x02, 'CMBN':0x04, 'CMFI':0x06, 'CMRT':0x08, 'CMBS':0x0A, 'CMFB':0x0C}
-CM_CONST_ID = {0x00:'CMSF', 0x02:'CMA', 0x04:'CMBN', 0x06:'CMFI', 0x08:'CMRT', 0x0A:'CMBS', 0x0C:'CMFB'}
+CM_ID_CONST = bidict({'CMSF':0x00, 'CMA':0x02, 'CMBN':0x04, 'CMFI':0x06, 'CMRT':0x08, 'CMBS':0x0A, 'CMFB':0x0C})
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description='Tool for experimenting with Combat Mission btt files.')
@@ -39,7 +39,7 @@ if __name__ == "__main__":
         f.seek(0x10)
         map_type, = struct.unpack("H", f.read(2))
         try:
-            print("Input map type:", CM_CONST_ID[map_type])
+            print("Input map type:", CM_ID_CONST.inverse[map_type])
         except:
             print("Invalid map type: 0x%x" % map_type)
             sys.exit(1)
