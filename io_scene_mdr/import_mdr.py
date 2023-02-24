@@ -208,7 +208,6 @@ def load(context, use_shadeless, use_smooth_shading, use_transform, use_material
             parent = next((x for x in new_objects if x.name.split('.')[0] == demangled_parent_name))
             ob.parent = parent
             ob.matrix_parent_inverse = parent.matrix_world.inverted()  # http://blender.stackexchange.com/questions/9200/make-object-a-a-parent-of-object-b-via-python
-        #TODO multiply normals by transpose of the inverse of the transform_matrix
         #http://www.scratchapixel.com/lessons/mathematics-physics-for-computer-graphics/geometry/transforming-normals
         if use_transform:
             if debug_logs:
@@ -220,9 +219,14 @@ def load(context, use_shadeless, use_smooth_shading, use_transform, use_material
             if np.sum(np.abs(transform_matrix.inverted() - inverse_transform_matrix)) < 0.01:
                 ob.data.transform(inverse_transform_matrix)
 
+                # multiply normals by transpose of the inverse of the transform_matrix
+                # can't modify vertex normal directly, so using split normals, see https://blenderartists.org/t/editing-normals/1233341/3
+                normals2 = []
                 for v in ob.data.vertices:
                     n = v.normal
-                    v.normal = inverse_transform_matrix.inverted().transposed() @ n
+                    normals2.append(inverse_transform_matrix.inverted().transposed() @ n)
+                ob.data.normals_split_custom_set_from_vertices(normals2)
+                ob.data.use_auto_smooth = True
 
                 ob.matrix_world = transform_matrix
             else:
