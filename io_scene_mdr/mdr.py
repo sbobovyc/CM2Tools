@@ -103,7 +103,7 @@ class MDR:
                         f.write(struct.pack("f", o.meta_data1[i]))
                     if len(o.meta_data2) != 0:
                         for i in range(0, 24):
-                            loggin.ingo("writing %f", o.meta_data2[i])
+                            logging.info("writing %f", o.meta_data2[i])
                             f.write(struct.pack("f", o.meta_data2[i]))
                         # f.write(struct.pack('x' * 12))
                         f.write(struct.pack("fff", *o.meta_data_unk1))

@@ -38,7 +38,7 @@ from mathutils import Matrix
 from .mdr import MDR
 
 
-def load(context, use_shadeless, use_smooth_shading, use_transform, use_materials, use_recursive_search, use_metadata, use_debug, filepath, relpath=None):
+def load(context, use_smooth_shading, use_transform, use_materials, use_recursive_search, use_metadata, use_debug, filepath, relpath=None):
     debug_logs = use_debug
     if debug_logs:
         print(filepath)
@@ -124,23 +124,9 @@ def load(context, use_shadeless, use_smooth_shading, use_transform, use_material
                         image = load_image(mdr_ob.texture_name+".bmp", parent_dir, recursive=True, relpath=relpath)
 
                 if image is not None:
-                    #tex.image = image
-                    #texImage.image = image
                     ma_wrap.base_color_texture.image = image
                 else:
                     print("Could not load", mdr_ob.texture_name)
-
-#                if use_shadeless:
-#                    node = mat.node_tree.nodes['Principled BSDF']
-#                    mat.node_tree.nodes.remove(node)
-#                    mat.node_tree.nodes.new('ShaderNodeEmission')
-#                    emission = mat.node_tree.nodes["Emission"]
-#                    output = mat.node_tree.nodes["Material Output"]
-#                    mat.node_tree.links.new(emission.inputs['Color'], texImage.outputs['Color'])
-#                    mat.node_tree.links.new(output.inputs['Surface'], emission.outputs['Emission'])
-#                else:
-#                    bsdf = mat.node_tree.nodes["Principled BSDF"]
-#                    mat.node_tree.links.new(bsdf.inputs['Base Color'], texImage.outputs['Color'])
 
                 # mtex.texture = tex
                 # mtex.texture_coords = 'UV'
@@ -157,9 +143,9 @@ def load(context, use_shadeless, use_smooth_shading, use_transform, use_material
                 else:
                      alpha_const = 1.0
                 if "shininess" in mdr_ob.material:
-                     ma_wrap.specular = mdr_ob.material["shininess"]/128.0
+                     ma_wrap.specular = mdr_ob.material["shininess"]/128.0 #TODO this is likely wrong
                 else:
-                     mat.specular_hardness = 1.0
+                     mat.specular_hardness = 1.0 #TODO this no longer exists in Blender 2.8x and higher
 
                 ma_wrap.alpha = alpha_const
                 #TODO alpha constant is not used by Blender if there is an alpha image

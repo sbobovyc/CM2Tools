@@ -22,7 +22,7 @@ bl_info = {
     "name": "Combat Mission MDR format",
     "author": "Stanislav Bobovych",
     "version": (0, 9, 2),
-    "blender": (2, 80, 0),
+    "blender": (3, 5, 0),
     "location": "File > Import-Export",
     "description": "Import-Export MDR, Import MDR mesh, UV's, materials and textures",
     "warning": "",
@@ -66,11 +66,6 @@ class ImportMDR(bpy.types.Operator, ImportHelper):
             default="*.mdr",
             options={'HIDDEN'},
             )
-    use_shadeless: BoolProperty(
-        name="Shadeless materials",
-        description="Make all materials shadeless",
-        default=False,
-    )
     use_smooth_shading: BoolProperty(
         name="Use smooth shading",
         description="Make all objects use smooth shading",
@@ -79,7 +74,7 @@ class ImportMDR(bpy.types.Operator, ImportHelper):
     use_transform: BoolProperty(
         name="Use transform",
         description="Apply transform to object",
-        default=False,
+        default=True,
     )
     use_materials: BoolProperty(
         name="Import materials",
@@ -94,10 +89,10 @@ class ImportMDR(bpy.types.Operator, ImportHelper):
     use_metadata: BoolProperty(
         name="Import metadata",
         description="Import metadata into object custom properties",
-        default=False,
+        default=True,
     )
     use_debug: BoolProperty(
-        name="Debug",
+        name="Debug log",
         description="Print debug messages",
         default=False,
     )
@@ -133,8 +128,7 @@ class ImportMDR(bpy.types.Operator, ImportHelper):
         layout = self.layout
 
         row = layout.row(align=True)
-        row.prop(self, "use_shadeless")
-        layout.prop(self, "use_smooth_shading")
+        row.prop(self, "use_smooth_shading")
         layout.prop(self, "use_transform")
         layout.prop(self, "use_materials")
         layout.prop(self, "use_recursive_search")

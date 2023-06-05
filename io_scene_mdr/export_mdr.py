@@ -31,6 +31,7 @@ import bpy
 import os
 import math
 from mathutils import Matrix, Vector
+from bpy_extras import node_shader_utils
 from .mdr import MDR, MDRObject
 
 
@@ -39,7 +40,7 @@ def bounds(obj, local=False):
     om = obj.matrix_world
 
     if not local:
-        worldify = lambda p: om * Vector(p[:])
+        worldify = lambda p: om @ Vector(p[:])
         coords = [worldify(p).to_tuple() for p in local_coords]
     else:
         coords = [p[:] for p in local_coords]
@@ -114,9 +115,9 @@ def save(operator, context, filepath, var_float=1.0, use_metadata=False, path_mo
             vertex_array = []
             vertex_normal_array = []
             for vert in me.vertices:
-                x, y, z = matrix_world * vert.co.xyz
+                x, y, z = matrix_world @ vert.co.xyz
                 vertex_array.append((x, y, z))
-                transformed_normal = matrix_world.inverted().transposed() * vert.normal
+                transformed_normal = matrix_world.inverted().transposed() @ vert.normal
                 # normalized transformed normal in case the object was scaled
                 nx, ny, nz = transformed_normal.normalized()
                 norm = (int(nx*(2**15 - 1)), int(ny*(2**15 - 1)), int(nz*(2**15 - 1)))
@@ -146,19 +147,38 @@ def save(operator, context, filepath, var_float=1.0, use_metadata=False, path_mo
             mdr_obj.bbox_z_min = object_bound_box.z.min
             mdr_obj.bbox_z_max = object_bound_box.z.max
 
-            diffuse_texture = None
-            if me.materials[0].texture_slots[0] is None:
-                operator.report({'ERROR'}, "%s object material is missing a texture" % ob.name)
+            #TODO make variable names consistent with import
+            diffuse_texture_wrap = None
+            diffuse_texture_file = None
+            diffuse_color = None
+            specular_color = None
+            specular_tint = None
+            alpha = None
+            print("Number of materials: %s" % len(me.materials))
+            #TODO handle cases where texture is missing from material
+            if me.materials[0] is None:
+                operator.report({'ERROR'}, "%s object material is missing" % ob.name)
                 return {'CANCELLED'}
+            for material in me.materials:
+                print("Material: ", material)
+            mat_wrap = node_shader_utils.PrincipledBSDFWrapper(me.materials[0]) if me.materials[0] else None
+            if mat_wrap:
+                diffuse_texture_wrap = getattr(mat_wrap, "base_color_texture", None)
+                print("Got color texture", diffuse_texture_wrap.image.filepath)
+                diffuse_texture_file = os.path.splitext(os.path.splitext(diffuse_texture_wrap.image.filepath)[0])[0] # strip extension from filenames
+                diffuse_color = mat_wrap.base_color[:3]
+                print("Got diffuse color: %.6f %.6f %.6f" % diffuse_color)
+                specular_color = mat_wrap.specular
+                print("Got specular color: ", specular_color)
+                specular_tint = mat_wrap.specular_tint
+                print("Got specular tint: ", specular_tint)
+                alpha = mat_wrap.alpha
+                print("Got alpha: ", alpha)
             else:
-                if me.materials[0].texture_slots[0].texture.image is None:
-                    operator.report({'ERROR'}, "%s object texture slot is missing a texture file" % ob.name)
-                    return {'CANCELLED'}
-                else:
-                    diffuse_texture = me.materials[0].texture_slots[0].texture.image.name
+                operator.report({'ERROR'}, "%s object material is wrapping failed" % ob.name)
+                return {'CANCELLED'}
 
-            # strip extension from filenames
-            diffuse_texture_file = os.path.splitext(os.path.splitext(diffuse_texture)[0])[0]
+            #TODO check that all objects are not None
 
             mdr_obj.index_array = index_array
             mdr_obj.uv_array = uv_array
@@ -167,10 +187,13 @@ def save(operator, context, filepath, var_float=1.0, use_metadata=False, path_mo
             mdr_obj.texture_name = diffuse_texture_file.encode('ascii')
             mdr_obj.transform_matrix = matrix_world.transposed()  # Blender stores matrix in row-major, mdr uses column major
             mdr_obj.inverse_transform_matrix = matrix_world.inverted().transposed()
-            mdr_obj.material["diffuse_color"] = tuple(ob.material_slots[0].material.diffuse_color)
+            mdr_obj.material["diffuse_color"] = tuple(ob.material_slots[0].material.diffuse_color) #TODO which diffuse color to use?
+            mdr_obj.material["diffuse_color"] = tuple(diffuse_color)
             mdr_obj.material["specular_color"] = tuple(ob.material_slots[0].material.specular_color)
-            mdr_obj.material["shininess"] = (ob.material_slots[0].material.specular_hardness / 511.0) * 128.0  # GL_SHININESS is 0 to 128
-            mdr_obj.material["alpha_constant"] = me.materials[0].texture_slots[0].alpha_factor
+            print("specular_color?: ", mdr_obj.material["specular_color"])
+            # mdr_obj.material["shininess"] = (ob.material_slots[0].material.specular_hardness / 511.0) * 128.0  # GL_SHININESS is 0 to 128
+            mdr_obj.material["shininess"] = ((1.0-ob.material_slots[0].material.roughness)**-1/2)*128.0 # GL_SHININESS is 0 to 128, not sure if this is the right conversion from roughness to shininess
+            mdr_obj.material["alpha_constant"] = alpha
             for i,key in enumerate(bpy.data.materials.keys()):
                 if ob.material_slots[0].material == bpy.data.materials[key]:
                     mdr_obj.material["material_id"] = i
