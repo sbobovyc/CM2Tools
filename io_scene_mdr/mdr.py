@@ -36,7 +36,7 @@ def read_matrix(f):
             logging.info("0x%x [%i] %f", f.tell() - 4, column, value)
             mat[row][column] = value
     logging.info("This is a transform matrix:")
-    logging.info(mat)
+    logging.info(f"\n{mat}")
     return mat
 
 

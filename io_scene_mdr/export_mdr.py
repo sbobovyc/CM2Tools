@@ -30,6 +30,7 @@ Run this script from "File->Export" menu.
 import bpy
 import os
 import math
+from pathlib import Path
 from mathutils import Matrix, Vector
 from bpy_extras import node_shader_utils
 from .mdr import MDR, MDRObject
@@ -165,7 +166,7 @@ def save(operator, context, filepath, var_float=1.0, use_metadata=False, path_mo
             if mat_wrap:
                 diffuse_texture_wrap = getattr(mat_wrap, "base_color_texture", None)
                 print("Got color texture", diffuse_texture_wrap.image.filepath)
-                diffuse_texture_file = os.path.splitext(os.path.splitext(diffuse_texture_wrap.image.filepath)[0])[0] # strip extension from filenames
+                diffuse_texture_file = Path(diffuse_texture_wrap.image.filepath).stem
                 diffuse_color = mat_wrap.base_color[:3]
                 print("Got diffuse color: %.6f %.6f %.6f" % diffuse_color)
                 specular_color = mat_wrap.specular
@@ -185,6 +186,7 @@ def save(operator, context, filepath, var_float=1.0, use_metadata=False, path_mo
             mdr_obj.vertex_array = vertex_array
             mdr_obj.vertex_normal_array = vertex_normal_array
             mdr_obj.texture_name = diffuse_texture_file.encode('ascii')
+            print(f"Diffuse texture name: {mdr_obj.texture_name}")
             mdr_obj.transform_matrix = matrix_world.transposed()  # Blender stores matrix in row-major, mdr uses column major
             mdr_obj.inverse_transform_matrix = matrix_world.inverted().transposed()
             mdr_obj.material["diffuse_color"] = tuple(ob.material_slots[0].material.diffuse_color) #TODO which diffuse color to use?

@@ -105,7 +105,6 @@ def load(context, use_smooth_shading, use_transform, use_materials, use_recursiv
                 mat = bpy.data.materials.new(material_name)
                 ma_wrap = node_shader_utils.PrincipledBSDFWrapper(mat, is_readonly=False)
                 nodal_material_wrap_map[mat] = ma_wrap
-                ma_wrap.use_nodes = True
                         
 #                texImage = mat.node_tree.nodes.new('ShaderNodeTexImage')
 #                tex = bpy.data.textures.new('DiffuseTex', type='IMAGE')
@@ -212,7 +211,8 @@ def load(context, use_smooth_shading, use_transform, use_materials, use_recursiv
                     n = v.normal
                     normals2.append(inverse_transform_matrix.inverted().transposed() @ n)
                 ob.data.normals_split_custom_set_from_vertices(normals2)
-                ob.data.use_auto_smooth = True
+                #TODO Mesh.use_auto_smooth was removed!
+                #ob.data.use_auto_smooth = True
 
                 ob.matrix_world = transform_matrix
             else:
