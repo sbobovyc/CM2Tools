@@ -96,7 +96,7 @@ def save(operator, context, filepath, var_float=1.0, use_metadata=False, path_mo
                 print("Checking children", c, c.type)
                 if c.type == 'EMPTY':
                     # print(c.name, c.matrix_world)
-                    achor_matrix = c.matrix_world * Matrix.Rotation(math.radians(-90), 4, "Y")
+                    achor_matrix = c.matrix_world @ Matrix.Rotation(math.radians(-90), 4, "Y")
                     # print(achor_matrix)
                     print(c.name, Matrix.transposed(achor_matrix))
                     mdr_obj.anchor_points.append((c.name.encode('ascii'), Matrix.transposed(achor_matrix)))
