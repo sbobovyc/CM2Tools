@@ -53,6 +53,8 @@ def read_material(f):
     diffuse_color = struct.unpack("fff", f.read(4 * 3))
     logging.info("Diffuse color %s", diffuse_color)  # GL_DIFFUSE
     specular_color = struct.unpack("fff", f.read(4 * 3))
+    if specular_color[0] != specular_color[1] or specular_color[1] != specular_color[2]:
+        logging.error("Specular color elements differ!")
     logging.info("Specular color %s", specular_color)  # GL_SPECULAR
     shininess, = struct.unpack("f", f.read(4))
     logging.info("Shininess %f", shininess)  # GL_SHININESS
@@ -315,7 +317,9 @@ class MDRObject:
             self.parent_name = f.read(length).decode("ascii")
             logging.info("%s, parent name: %s, 0x%x", self.name, self.parent_name, f.tell())
 
+        logging.info("Reading object transform matrix")
         self.transform_matrix = read_matrix(f)  # read at 004532C1
+        logging.info("Reading object inverse transform matrix")
         self.inverse_transform_matrix = read_matrix(f)  # read at 004532D1
 
         anchor_point_count, = struct.unpack("<I", f.read(4))  # read at 004532DF
