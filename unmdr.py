@@ -22,6 +22,7 @@ import os
 import sys
 import argparse
 import logging
+from pathlib import Path
 
 sys.path.append("io_scene_mdr") # doing this instead of import to avoid executing __init__.py
 from mdr import MDR
@@ -29,8 +30,8 @@ from mdr import MDR
 def float2string(f):
     return "{0:.12f}".format(f)
 
-def short2float(value):
-    return value / (2.0**15 - 1)
+def short2float(value: int) -> float:
+    return value / 32768.0
 
 def make_wavefront_obj(mdr_ob):
     """ Serialize mdr to obj format and return it as a string."""
@@ -83,7 +84,8 @@ def make_wavefront_mtl(mdr_ob):
         string += "Ka %f %f %f\n" % (mdr_ob.material["ambient_color"])
         string += "Kd %f %f %f\n" % (mdr_ob.material["diffuse_color"])
         string += "Ks %f %f %f\n" % (mdr_ob.material["specular_color"])
-        string += "Ns %f\n" % (mdr_ob.material["shininess"])
+        # remap GL_SHININESS (with the scaling factor applied by the game's shader) to Wavefront OBJ Ns
+        string += "Ns %f\n" % (((0.3 * mdr_ob.material["shininess"]) / 128.0) * 1000.0)
     string += "d 1.0\n"                   # transparency
     string += "illum 1\n"                 # Color on and Ambient on
     string += "map_Kd %s.bmp\n" % mdr_ob.texture_name
@@ -106,7 +108,8 @@ if __name__ == "__main__":
     else:
         filepath = args.file
 
-    logging.basicConfig(level=logging.INFO)
+    FORMAT = f'%(levelname)s:{Path(filepath).name}:%(message)s'
+    logging.basicConfig(level=logging.INFO, format=FORMAT)
     
     logging.info(filepath)
     base_name = os.path.splitext(os.path.basename(filepath))[0]
