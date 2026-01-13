@@ -142,7 +142,10 @@ def load(context, use_smooth_shading, use_transform, use_materials, use_recursiv
                 else:
                      alpha_const = 1.0
                 if "shininess" in mdr_ob.material:
-                     ma_wrap.specular = mdr_ob.material["shininess"]/128.0 #TODO this is likely wrong
+                     # Mapping MDR shininess to BSDF roughness
+                     print("Calcularing shinines %f" % mdr_ob.material["shininess"])
+                     ma_wrap.roughness = np.clip(1.0 - math.sqrt((mdr_ob.material["shininess"]*0.3)/128.0), 0.0, 1.0)
+                     print("Calculated roughness %f" % ma_wrap.roughness)
                 else:
                      mat.specular_hardness = 1.0 #TODO this no longer exists in Blender 2.8x and higher
 

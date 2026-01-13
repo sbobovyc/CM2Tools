@@ -195,8 +195,9 @@ def save(operator, context, filepath, var_float=1.0, use_metadata=False, path_mo
             mdr_obj.material["diffuse_color"] = tuple(diffuse_color)
             mdr_obj.material["specular_color"] = tuple(ob.material_slots[0].material.specular_color)
             print("specular_color?: ", mdr_obj.material["specular_color"])
-            # mdr_obj.material["shininess"] = (ob.material_slots[0].material.specular_hardness / 511.0) * 128.0  # GL_SHININESS is 0 to 128
-            mdr_obj.material["shininess"] = ((1.0-ob.material_slots[0].material.roughness)**-1/2)*128.0 # GL_SHININESS is 0 to 128, not sure if this is the right conversion from roughness to shininess
+            # convert BSDF roughness to GL_SHININESS (with the game's scaling factor taken into account)
+            mdr_obj.material["shininess"] = np.clip(((1.0-ob.material_slots[0].material.roughness)**2)*(128.0/0.3), 0.0, 128.0)
+            print(f"Calculated shininess: {mdr_obj.material['shininess']}")
             mdr_obj.material["alpha_constant"] = alpha
             for i,key in enumerate(bpy.data.materials.keys()):
                 if ob.material_slots[0].material == bpy.data.materials[key]:
