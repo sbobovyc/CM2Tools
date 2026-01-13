@@ -188,8 +188,9 @@ def save(operator, context, filepath, var_float=1.0, use_metadata=False, path_mo
             mdr_obj.vertex_normal_array = vertex_normal_array
             mdr_obj.texture_name = diffuse_texture_file.encode('ascii')
             print(f"Diffuse texture name: {mdr_obj.texture_name}")
-            mdr_obj.transform_matrix = matrix_world.transposed()  # Blender stores matrix in row-major, mdr uses column major
-            mdr_obj.inverse_transform_matrix = matrix_world.inverted().transposed()
+            matrix_zero4x4 =  Matrix([(0,0,0,0), (0,0,0,0), (0,0,0,0), (0,0,0,0)])
+            mdr_obj.transform_matrix = matrix_world.transposed() + matrix_zero4x4 # Blender stores matrix in row-major, mdr uses column major
+            mdr_obj.inverse_transform_matrix = matrix_world.inverted().transposed() + matrix_zero4x4
             mdr_obj.material["diffuse_color"] = tuple(ob.material_slots[0].material.diffuse_color) #TODO which diffuse color to use?
             mdr_obj.material["diffuse_color"] = tuple(diffuse_color)
             mdr_obj.material["specular_color"] = tuple(ob.material_slots[0].material.specular_color)
