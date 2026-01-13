@@ -30,6 +30,7 @@ Run this script from "File->Export" menu.
 import bpy
 import os
 import math
+import numpy as np
 from pathlib import Path
 from mathutils import Matrix, Vector
 from bpy_extras import node_shader_utils
@@ -121,7 +122,7 @@ def save(operator, context, filepath, var_float=1.0, use_metadata=False, path_mo
                 transformed_normal = matrix_world.inverted().transposed() @ vert.normal
                 # normalized transformed normal in case the object was scaled
                 nx, ny, nz = transformed_normal.normalized()
-                norm = (int(nx*(2**15 - 1)), int(ny*(2**15 - 1)), int(nz*(2**15 - 1)))
+                norm = (int(nx * 32767.0), int(ny * 32767.0), int(nz * 32767.0))
                 vertex_normal_array.append(norm)
 
             # for i, (face, blen_poly) in enumerate(zip(index_array, me.polygons)):
