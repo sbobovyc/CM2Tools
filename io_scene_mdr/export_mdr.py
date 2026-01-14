@@ -193,7 +193,7 @@ def save(operator, context, filepath, var_float=1.0, use_metadata=False, path_mo
             mdr_obj.inverse_transform_matrix = matrix_world.inverted().transposed() + matrix_zero4x4
             mdr_obj.material["diffuse_color"] = tuple(ob.material_slots[0].material.diffuse_color) #TODO which diffuse color to use?
             mdr_obj.material["diffuse_color"] = tuple(diffuse_color)
-            mdr_obj.material["specular_color"] = tuple(ob.material_slots[0].material.specular_color)
+            mdr_obj.material["specular_color"] = (specular_color,) * 3
             print("specular_color?: ", mdr_obj.material["specular_color"])
             # convert BSDF roughness to GL_SHININESS (with the game's scaling factor taken into account)
             mdr_obj.material["shininess"] = np.clip(((1.0-ob.material_slots[0].material.roughness)**2)*(128.0/0.3), 0.0, 128.0)

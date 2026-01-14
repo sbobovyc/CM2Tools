@@ -53,7 +53,7 @@ def load(context, use_smooth_shading, use_transform, use_materials, use_recursiv
 
     for mdr_ob in m.objects:
         if debug_logs:
-            print("Object: ", mdr_ob.name)
+            print("MDR object: ", mdr_ob.name)
         verts_loc = mdr_ob.vertex_array
         faces = mdr_ob.index_array
         me = bpy.data.meshes.new(mdr_ob.name)
@@ -105,9 +105,7 @@ def load(context, use_smooth_shading, use_transform, use_materials, use_recursiv
                 mat = bpy.data.materials.new(material_name)
                 ma_wrap = node_shader_utils.PrincipledBSDFWrapper(mat, is_readonly=False)
                 nodal_material_wrap_map[mat] = ma_wrap
-                        
-#                texImage = mat.node_tree.nodes.new('ShaderNodeTexImage')
-#                tex = bpy.data.textures.new('DiffuseTex', type='IMAGE')
+
                 if debug_logs:
                     print("Load diffuse texture", mdr_ob.texture_name)
                 img_found = False
@@ -135,7 +133,8 @@ def load(context, use_smooth_shading, use_transform, use_materials, use_recursiv
                 if "diffuse_color" in mdr_ob.material:
                      ma_wrap.base_color = mdr_ob.material["diffuse_color"]
                 if "specular_color" in mdr_ob.material:
-                     #TODO PrincipalBSDF does not have specular color, check existing models
+                     # PrincipalBSDF does not have specular color. Game does not seem to use different values for each color channel,
+                     # so using similar approach to Wavefront OBJ plugin. Take average and store in specular IOR level.
                      ma_wrap.specular = sum(mdr_ob.material["specular_color"]) / 3.0
                 if "alpha_constant" in mdr_ob.material:
                      alpha_const = mdr_ob.material["alpha_constant"]
@@ -147,8 +146,9 @@ def load(context, use_smooth_shading, use_transform, use_materials, use_recursiv
                      ma_wrap.roughness = np.clip(1.0 - math.sqrt((mdr_ob.material["shininess"]*0.3)/128.0), 0.0, 1.0)
                      print("Calculated roughness %f" % ma_wrap.roughness)
                 else:
-                     mat.specular_hardness = 1.0 #TODO this no longer exists in Blender 2.8x and higher
+                     ma_wrap.roughness = 1.0
 
+                ma_wrap.ior = 1.0 # default all materials to not use Fresnel effect
                 ma_wrap.alpha = alpha_const
                 #TODO alpha constant is not used by Blender if there is an alpha image
                 if image is not None and (alpha_const < 1.0 or image.depth == 32):
@@ -183,6 +183,8 @@ def load(context, use_smooth_shading, use_transform, use_materials, use_recursiv
                 new_materials[material_name] = mat
 
         ob = bpy.data.objects.new(me.name, me)
+        if debug_logs:
+            print("Created Blender object", ob.name)
         if use_materials:
             print("Transparent back", mat.name, mat.show_transparent_back)
             ob.data.materials.append(mat)
