@@ -49,8 +49,12 @@ def write_matrix(mat, f):
 def read_material(f):
     logging.info("Start reading material 0x%x", f.tell())
     ambient_color = struct.unpack("fff", f.read(4 * 3))
+    if ambient_color[0] != ambient_color[1] or ambient_color[1] != ambient_color[2]:
+        logging.error("Ambient color elements differ!")
     logging.info("Ambient color %s", ambient_color)  # GL_AMBIENT
     diffuse_color = struct.unpack("fff", f.read(4 * 3))
+    if diffuse_color[0] != diffuse_color[1] or diffuse_color[1] != diffuse_color[2]:
+        logging.error("Diffuse color elements differ!")
     logging.info("Diffuse color %s", diffuse_color)  # GL_DIFFUSE
     specular_color = struct.unpack("fff", f.read(4 * 3))
     if specular_color[0] != specular_color[1] or specular_color[1] != specular_color[2]:
