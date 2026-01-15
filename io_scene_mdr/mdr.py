@@ -315,7 +315,7 @@ class MDRObject:
                 meta_name = f.read(length).decode("ascii")
                 meta_count, = struct.unpack("<H", f.read(2))
                 meta_data = struct.unpack('b'*meta_count, f.read(meta_count))
-                logging.info(f"foliage_meta: {meta_name} {*meta_data}")#, *meta_data)
+                logging.info(f"foliage_meta: {meta_name} {meta_data}")
                 self.foliage_meta[meta_name] = meta_data
             logging.info("################")
 
