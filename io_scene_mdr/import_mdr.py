@@ -252,34 +252,41 @@ def load(context, use_smooth_shading, use_transform, use_materials, use_recursiv
             ob.parent = parent
             ob.matrix_parent_inverse = parent.matrix_world.inverted()  # http://blender.stackexchange.com/questions/9200/make-object-a-a-parent-of-object-b-via-python
         #http://www.scratchapixel.com/lessons/mathematics-physics-for-computer-graphics/geometry/transforming-normals
+        transform_matrix = Matrix(mdr_ob.transform_matrix)
+        inverse_transform_matrix = Matrix(mdr_ob.inverse_transform_matrix)
+
         if use_transform:
             if debug_logs:
                 print("Translating", ob.name)
-            transform_matrix = Matrix(mdr_ob.transform_matrix)
-            inverse_transform_matrix = Matrix(mdr_ob.inverse_transform_matrix)
 
             # in some cases, object transform is not used
             if np.sum(np.abs(transform_matrix.inverted() - inverse_transform_matrix)) < 0.01:
+                if debug_logs:
+                    print("Transform matrix:")
+                    print(transform_matrix)
+                    print("Inverse transform matrix:")
+                    print(inverse_transform_matrix)
+
                 ob.data.transform(inverse_transform_matrix)
 
-                # multiply normals by transpose of the inverse of the transform_matrix
-                # can't modify vertex normal directly, so using split normals, see https://blenderartists.org/t/editing-normals/1233341/3
-                normals2 = []
-                for v in ob.data.vertices:
-                    n = v.normal
-                    normals2.append(inverse_transform_matrix.inverted().transposed() @ n)
-                ob.data.normals_split_custom_set_from_vertices(normals2)
-                #TODO Mesh.use_auto_smooth was removed!
-                #ob.data.use_auto_smooth = True
+                if inverse_transform_matrix.determinant() < 0:
+                    print("Warning: inverse_transform_matrix will invert normals, so flipping normals")
+                    for poly in ob.data.polygons:
+                        poly.flip()
 
                 ob.matrix_world = transform_matrix
             else:
                 print("Transform mismatch!")
-                # print(transform_matrix)
-                # print(transform_matrix.inverted())
-                # print(inverse_transform_matrix)
-                # print(inverse_transform_matrix.inverted())
                 if debug_logs:
+                    print("Transform matrix:")
+                    print(transform_matrix)
+                    print("Transform matrix inverted:")
+                    print(transform_matrix.inverted())
+                    print("Inverse transform matrix:")
+                    print(inverse_transform_matrix)
+                    print("Inverse transform matrix inverted:")
+                    print(inverse_transform_matrix.inverted())
+                    print("Transform matrix - inverse transform matrix inverted:")
                     print(transform_matrix - inverse_transform_matrix.inverted())
 
         view_layer = bpy.context.view_layer
@@ -292,6 +299,7 @@ def load(context, use_smooth_shading, use_transform, use_materials, use_recursiv
             matrix = anchor[1]
             m = Matrix(matrix)
             if debug_logs:
+                print("Anchor matrix:")
                 print(m)
 
             anchor_ob = bpy.data.objects.new(name, None)
