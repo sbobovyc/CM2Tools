@@ -1,5 +1,5 @@
 """@package unmdr
-Documentation for this module. 
+Documentation for this module.
 More details.
 """
 
@@ -97,6 +97,8 @@ if __name__ == "__main__":
                         help='Only parse file, do not dump models')
     parser.add_argument('-v', '--verbose', default=False, action='store_true',
                         help='Print more info useful for debugging')
+    parser.add_argument('-d', '--debug', default=False, action='store_true',
+                        help='Print debug info useful for debugging')
     parser.add_argument('-o', '--outdir', default=os.getcwd(), help='Output path')
     parser.add_argument('file', nargs='?', help='Input file')
     args = parser.parse_args()
@@ -109,8 +111,9 @@ if __name__ == "__main__":
         filepath = args.file
 
     FORMAT = f'%(levelname)s:{Path(filepath).name}:%(message)s'
-    logging.basicConfig(level=logging.INFO, format=FORMAT)
-    
+    level = logging.INFO if not args.debug else logging.DEBUG
+    logging.basicConfig(level=level, format=FORMAT)
+
     logging.info(filepath)
     base_name = os.path.splitext(os.path.basename(filepath))[0]
     m = MDR(filepath, base_name, args.parse_only, args.parse_only, args.verbose)
