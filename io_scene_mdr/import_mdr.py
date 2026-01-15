@@ -199,7 +199,7 @@ def load(context, use_smooth_shading, use_transform, use_materials, use_recursiv
                             # Place it visually
                             math_node.location = (
                                 (image_node.location.x + bsdf_node.location.x) / 2,
-                                image_node.location.y + 200
+                                image_node.location.y + 320
                             )
                             # move image node for a cleaner look
                             image_node.location = (image_node.location.x - 100, image_node.location.y)
