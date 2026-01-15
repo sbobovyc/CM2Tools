@@ -89,7 +89,7 @@ class MDR:
     def read(self, outdir):
         with open(self.filepath, "rb") as f:
             self.num_models, = struct.unpack("<I", f.read(4))  # read from 008A04D8
-            logging.info("number of models %i", self.num_models)
+            logging.info(f"number of models {self.num_models}")
             for i in range(0, self.num_models):
                 mdr_obj = MDRObject()
                 mdr_obj.read(self.base_name, self.num_models, f, i, outdir, not self.parse_only, self.verbose)
@@ -205,6 +205,14 @@ class MDRObject:
         self.inverse_transform_matrix = None
         self.foliage_meta = {}
 
+        # all the WIP data
+        self.uint8_unk0 = None
+        self.meta_data1 = []
+        self.meta_data2 = []
+        self.meta_data3 = []
+        self.meta_data_unk1 = None
+        self.meta_data_unk2 = None
+
     def read(self, base_name, num_models, f, model_number, outdir, dump=True, verbose=False):
         ########
         # object:
@@ -217,33 +225,26 @@ class MDRObject:
         ####
         self.base_name = base_name
         logging.info("#"*50)
-        logging.info("Start model %i at 0x%x", model_number, f.tell())
-        f.read(1)  # read at 004537A0
+        logging.info(f"Start model {model_number} at {f.tell():#x}")
+        f.read(1)
         name_length, = struct.unpack("<H", f.read(2))
-        logging.info("submodel name length: %i", name_length)
-        self.name = f.read(name_length).decode("ascii")  # saved at 0073E054
-        logging.info("submodel name: %s", self.name)
+        logging.info(f"submodel name length: {name_length}")
+        self.name = f.read(name_length).decode("ascii")
+        logging.info(f"submodel name: {self.name}")
 
         logging.info("Start collision metadata")
-        self.meta_data1 = []
-        self.meta_data2 = []
-        self.meta_data3 = []
-        self.meta_data_unk1 = None
-        self.meta_data_unk2 = None
         # read one byte, but it is saved as 4 byte in memory
-        unk0, = struct.unpack("b", f.read(1))  # saved at 004539BB
-        logging.info("0x%x %i", f.tell() - 1, unk0)
-        if unk0 != 2:
-            error_message = "unk0 is %s, not 2, 0x%x %s, %s, %s" % (
-            unk0, f.tell() - 1, base_name, self.name, model_number)
-            # raise ValueError(error_message)
+        self.uint8_unk0, = struct.unpack("b", f.read(1))
+        logging.info(f"{self.uint8_unk0=} at {f.tell() - 1:#x}")
+        if self.uint8_unk0 != 2:
+            error_message = "self.uint8_unk0 is %s, not 2, 0x%x %s, %s, %s" % (
+            self.uint8_unk0, f.tell() - 1, base_name, self.name, model_number)
             print(error_message)
-        # else:
-        #     print("unk0 is %s (always 2?) 0x%x %s, %s, %s" % (unk0, f.tell() - 1, base_name, self.name, model_number))
+            logging.error(error_message)
 
-        logging.info("Start unknown section of 176 bytes, has something to do with collision box 0x%x" , f.tell())
 
-        # start reading at 004539D1
+        logging.info(f"Start unknown section of 176 bytes, has something to do with collision box at {f.tell():#x}")
+
         for i in range(0, 11):
             unk, = struct.unpack("f", f.read(4))
             self.meta_data1.append(unk)
@@ -251,7 +252,7 @@ class MDRObject:
 
         logging.debug("################")
 
-        # loop at 00453ACF
+        # this is read in a separate loop from meta_data1
         for i in range(0, 6):
             for j in range(0, 4):
                 unk, = struct.unpack("f", f.read(4))
@@ -261,35 +262,35 @@ class MDRObject:
 
         unk = struct.unpack("fff", f.read(12))
         self.meta_data_unk1 = unk
-        logging.info("0x%x %f %f %f (unk)" % (f.tell() - 12, *unk))  # saved at 00453B3C
-        self.bbox_x_min, self.bbox_x_max, self.bbox_y_min, self.bbox_y_max, self.bbox_z_min, self.bbox_z_max = struct.unpack("ffffff", f.read(24))  # saved at 00453B4C
+        logging.info(f"{self.meta_data_unk1=} at {f.tell() - 12:#x}")  # saved separate from bbox
+        self.bbox_x_min, self.bbox_x_max, self.bbox_y_min, self.bbox_y_max, self.bbox_z_min, self.bbox_z_max = struct.unpack("ffffff", f.read(24))
         logging.info("Bound box min/max")
-        logging.info("xmin %s", self.bbox_x_min)
-        logging.info("xmax %s", self.bbox_x_max)
-        logging.info("ymin %s", self.bbox_y_min)
-        logging.info("ymax %s", self.bbox_y_max)
-        logging.info("zmin %s", self.bbox_z_min)
-        logging.info("zmax %s", self.bbox_z_max)
-        logging.info("Finished unknown section 0x%x", f.tell())
+        logging.info(f"xmin {self.bbox_x_min}")
+        logging.info(f"xmax {self.bbox_x_max}")
+        logging.info(f"ymin {self.bbox_y_min}")
+        logging.info(f"ymax {self.bbox_y_max}")
+        logging.info(f"zmin {self.bbox_z_min}")
+        logging.info(f"zmax {self.bbox_z_max}")
+        logging.info(f"Finished unknown section {f.tell():#x}")
 
         ###############################################
-        logging.info("Start face vertex indices at 0x%x", f.tell())
-        face_count, = struct.unpack("<I", f.read(4))  # read at 004537C5
-        logging.info("Face count: %i", int(face_count / 3))
+        logging.info(f"Start face vertex indices at {f.tell():#x}")
+        face_count, = struct.unpack("<I", f.read(4))
+        logging.info(f"Face count: {int(face_count / 3)}")
 
-        for i in range(0, int(face_count / 3)):  # read at 0045397B
+        for i in range(0, int(face_count / 3)):
             if not dump:
                 f.read(6)
             else:
                 v0, v1, v2 = struct.unpack("<HHH", f.read(6))
                 self.index_array.append((v0, v1, v2))
-        logging.info("Finished face vertex indices 0x%x" % f.tell())
+        logging.info(f"Finished face vertex indices {f.tell():#x}")
         ###############################################
 
         ###############################################
-        logging.info("Start UVs at 0x%x" , f.tell())
+        logging.info(f"Start UVs at {f.tell():#x}")
         uv_in_section, = struct.unpack("<I", f.read(4))
-        logging.info("UV in section: %i", int(uv_in_section / 2))
+        logging.info(f"UV in section: {int(uv_in_section / 2)}")
 
         for i in range(0, int(uv_in_section / 2)):  # read at 00453965
             if not dump:
@@ -297,20 +298,20 @@ class MDRObject:
             else:
                 u, v = struct.unpack("<ff", f.read(8))
                 self.uv_array.append((u, v))
-        logging.info("Finish UV section: 0x%x", f.tell())
+        logging.info(f"Finish UV section: {f.tell():#x}")
         ###############################################
 
         logging.info("Start unknown section 1")
         uv_last_index, = struct.unpack("<I", f.read(4))
-        logging.info("Last uv index %i at 0x%x", uv_last_index, f.tell() - 4)  # saved at 0045381B, right after UV data
+        logging.info(f"{uv_last_index=} at {f.tell() - 4:#x}")  # saved in a different function from UV, right after UV data
         if uv_last_index != uv_in_section/2 - 1:
-            logging.info("Last uv index != uv_in_section/2 - 1")
+            logging.error("Last uv index != uv_in_section/2 - 1")
 
-        count, = struct.unpack("<H", f.read(2))  # read at 00453826, used by CMSF2 for foliage metadata
-        logging.info("Unknown uint16 unk1 0x%x at 0x%x", count, f.tell() - 4)
-        if count != 0:
+        foliage_meta_count, = struct.unpack("<H", f.read(2))  # used by CMSF2 for foliage metadata
+        logging.info(f"{foliage_meta_count=} at {f.tell() - 4:#x}")
+        if foliage_meta_count != 0:
             logging.info("################")
-            for i in range(0, count):
+            for i in range(0, foliage_meta_count):
                 length, = struct.unpack("<H", f.read(2))
                 meta_name = f.read(length).decode("ascii")
                 meta_count, = struct.unpack("<H", f.read(2))
@@ -323,25 +324,26 @@ class MDRObject:
         self.parent_name = ""
         if length > 0:
             self.parent_name = f.read(length).decode("ascii")
-            logging.info("%s, parent name: %s, 0x%x", self.name, self.parent_name, f.tell())
+            logging.info(f"{self.name=}, {self.parent_name=} at {f.tell():#x}")
 
         logging.info("Reading object transform matrix")
         self.transform_matrix = read_matrix(f)  # read at 004532C1
         logging.info("Reading object inverse transform matrix")
         self.inverse_transform_matrix = read_matrix(f)  # read at 004532D1
 
-        anchor_point_count, = struct.unpack("<I", f.read(4))  # read at 004532DF
-        logging.info("Read 4 bytes, object count: %i", anchor_point_count)
+        anchor_point_count, = struct.unpack("<I", f.read(4))
+        logging.info(f"{anchor_point_count=}")
 
         for i in range(0, anchor_point_count):
             name_length, = struct.unpack("<H", f.read(2))
             anchor_name = f.read(name_length).decode("ascii")
-            logging.info("Anchor point %i: %s", i, anchor_name)
-            m = read_matrix(f)  # read at 00453311
+            logging.info(f"Anchor point {i}: {anchor_name}")
+            m = read_matrix(f)
             self.anchor_points.append((anchor_name, m))
-        logging.info("End list of anchor points 0x%x", f.tell())
+        logging.info(f"End list of anchor points at {f.tell():#x}")
 
-        logging.info("Start unknown data 0x%x", f.tell())
+        logging.info(f"Start unknown data at {f.tell():#x}")
+        #TODO log this
         for i in range(0, 3):
             f.read(1)  # always 0, read at 00453347, saved at 0045335B
             f.read(1)  # always 0, read at 00453365, saved at 00453378
@@ -354,16 +356,13 @@ class MDRObject:
             f.read(4)  # read 4 at 00453407
             f.read(4)  # read 4 at 0045341C
 
-        logging.info("End unknown data 0x%x", f.tell())
+        logging.info(f"End unknown data at {f.tell():#x}")
 
-        self.material = read_material(f)  # read at 0045343F, sub_5CE790
+        self.material = read_material(f)
 
-        name_length, = struct.unpack("<H", f.read(2))  # read in sub_73DE20, length of string
-        texture_name = f.read(name_length).decode("ascii")  # read at 0073DEA3
-        logging.info("Texture name: %s", texture_name)
-        # print("Texture\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s" % (
-        # self.material["material_id"], texture_name, self.material["ambient_color"], self.material["diffuse_color"],
-        # self.material["specular_color"], self.material["shininess"], self.material["alpha_constant"], self.name))
+        name_length, = struct.unpack("<H", f.read(2))  # read length of string
+        texture_name = f.read(name_length).decode("ascii")
+        logging.info(f"Texture name: {texture_name}")
 
         if dump:
             self.texture_name = texture_name
@@ -377,55 +376,55 @@ class MDRObject:
         else:
             logging.info("unk3 is %s (always 2?) 0x%x %s, %s, %s", unk3, f.tell() - 1, base_name, self.name, model_number)
         # read 4, 11 starting at 0045347B
-        logging.info("Start unknown section of 176 bytes, has something to do with collision box 0x%x", f.tell())
+        logging.info(f"Start unknown section of 176 bytes, has something to do with collision box at {f.tell():#x}")
         for i in range(0, 35):
             unk, = struct.unpack("f", f.read(4))
             self.meta_data3.append(unk)
             logging.debug("meta_data3 0x%x [%i] %f", f.tell() - 4, i, unk)
-        unk = struct.unpack("fff", f.read(12))  # read at 004535D7
-        self.meta_data_unk2 = unk
-        logging.info("meta_data_unk2 0x%x %f %f %f", f.tell() - 12, *unk)  # read at 004535D7
+
+        self.meta_data_unk2 = struct.unpack("fff", f.read(12))
+        logging.info(f"{self.meta_data_unk2=} at {f.tell() - 12:#x}")  # read at different place than meta_data_unk1
         self.bbox_x_min, self.bbox_x_max, self.bbox_y_min, self.bbox_y_max, self.bbox_z_min, self.bbox_z_max = struct.unpack("ffffff", f.read(24))
-        logging.info("Bound box min/max")  # read at 004535E7
-        logging.info("xmin %f", self.bbox_x_min)
-        logging.info("xmax %f", self.bbox_x_max)
-        logging.info("ymin %f", self.bbox_y_min)
-        logging.info("ymax %f", self.bbox_y_max)
-        logging.info("zmin %f", self.bbox_z_min)
-        logging.info("zmax %f", self.bbox_z_max)
-        logging.info("Finished unknown section 0x%x", f.tell())
+        logging.info("Bound box min/max")
+        logging.info(f"xmin {self.bbox_x_min}")
+        logging.info(f"xmax {self.bbox_x_max}")
+        logging.info(f"ymin {self.bbox_y_min}")
+        logging.info(f"ymax {self.bbox_y_max}")
+        logging.info(f"zmin {self.bbox_z_min}")
+        logging.info(f"zmax {self.bbox_z_max}")
+        logging.info(f"Finished unknown section {f.tell():#x}")
 
-        logging.info("Start vertices at 0x%x", f.tell())
-        vertex_floats, = struct.unpack("<I", f.read(4))  # read at 004535FB
-        logging.info("Vertex count: %i", int(vertex_floats / 3))
+        logging.info(f"Start vertices at {f.tell():#x}")
+        vertex_floats, = struct.unpack("<I", f.read(4))
+        logging.info(f"Vertex count: {int(vertex_floats / 3)}")
 
-        for i in range(0, int(vertex_floats / 3)):  # read at 0045373D
+        for i in range(0, int(vertex_floats / 3)):
             if not dump:
                 f.read(12)
             else:
                 x, y, z = struct.unpack("fff", f.read(12))
                 self.vertex_array.append((x, y, z))
-        logging.info("End vertices 0x%x", f.tell())
+        logging.info(f"End vertices at {f.tell():#x}")
 
-        logging.info("Start vertex normals at 0x%x", f.tell())
-        normal_count, = struct.unpack("<I", f.read(4))  # read at 0045361D
-        logging.info("Normals count: %i", int(normal_count / 3))  # 3 per vertex
+        logging.info(f"Start vertex normals at {f.tell():#x}")
+        normal_count, = struct.unpack("<I", f.read(4))
+        logging.info(f"Normals count: {int(normal_count / 3)}")  # 3 per vertex
 
         for i in range(0, int(normal_count / 3)):  # read at 00453727
             if not dump:
                 f.read(6)
             else:
                 nx, ny, nz = struct.unpack("<hhh", f.read(6))
-                logging.debug("vn [%i] %i %i %i", i, nx, ny, nz)
                 self.vertex_normal_array.append((nx, ny, nz))
-        logging.info("End normals 0x%x", f.tell())
+        logging.info(f"End normals at {f.tell():#x}")
 
         footer_counter, = struct.unpack("<I", f.read(4))  # read at 00453649
+        logging.info(f"{footer_counter=}")
         if footer_counter != 0:
-            logging.info("Parsing footer, count: %i", footer_counter)
-            logging.info(f.name, self.name)
+            logging.info(f"Parsing footer at {f.tell():#x}")
             for i in range(0, footer_counter):
                 logging.info(struct.unpack("<fff", f.read(12)))
                 length, = struct.unpack("<I", f.read(4))
-                f.read(length * 4)
+                logging.info(f"{length=}")
+                logging.info(f"Uknown content {f.read(length * 4)}")
         logging.info("End model 0x%x", f.tell())
