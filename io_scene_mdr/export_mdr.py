@@ -175,7 +175,32 @@ def save(operator, context, filepath, var_float=1.0, use_metadata=False, path_mo
                 specular_tint = mat_wrap.specular_tint
                 print("Got specular tint: ", specular_tint)
                 alpha = mat_wrap.alpha
-                print("Got alpha: ", alpha)
+                print("Got alpha (BSDF): ", alpha)
+
+                # if image alpha is used, find the math multiply node to extract the alpha constant instead of using the BSDF alpha constant
+                mat = me.materials[0]
+                bsdf_node = mat.node_tree.nodes.get("Principled BSDF")  # actual Principled BSDF node
+                nodes = mat.node_tree.nodes
+                links = mat.node_tree.links
+                math_node = None
+                for link in bsdf_node.inputs["Alpha"].links:
+                    if link.from_node.type == 'MATH' and link.from_node.operation == 'MULTIPLY':
+                        math_node = link.from_node
+                        break
+
+                if math_node:
+                    if not math_node.inputs[0].is_linked and not math_node.inputs[1].is_linked:
+                        operator.report({'ERROR'}, "%s object alpha material input to multiply math node is missing!" % ob.name)
+                        return {'CANCELLED'}
+                    if math_node.inputs[0].is_linked:
+                        alpha = math_node.inputs[1].default_value
+                        print(f"Got alpha {math_node.inputs[1].default_value=}")
+                    else:
+                        alpha = math_node.inputs[0].default_value
+                        print(f"Got alpha {math_node.inputs[0].default_value=}")
+                elif bsdf_node.inputs["Alpha"].is_linked:
+                    operator.report({'ERROR'}, "%s object alpha link exists, but the multiply math node does not!" % ob.name)
+                    return {'CANCELLED'}
             else:
                 operator.report({'ERROR'}, "%s object material is wrapping failed" % ob.name)
                 return {'CANCELLED'}

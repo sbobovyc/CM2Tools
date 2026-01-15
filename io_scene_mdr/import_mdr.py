@@ -34,7 +34,7 @@ import numpy as np
 from bpy_extras import node_shader_utils
 from bpy_extras.io_utils import unpack_list
 from bpy_extras.image_utils import load_image
-from mathutils import Matrix
+from mathutils import Matrix, Vector
 from .mdr import MDR
 
 
@@ -103,6 +103,7 @@ def load(context, use_smooth_shading, use_transform, use_materials, use_recursiv
                 if debug_logs:
                     print("Creating new material:", material_name)
                 mat = bpy.data.materials.new(material_name)
+                #mat.use_nodes = True
                 ma_wrap = node_shader_utils.PrincipledBSDFWrapper(mat, is_readonly=False)
                 nodal_material_wrap_map[mat] = ma_wrap
 
@@ -121,6 +122,7 @@ def load(context, use_smooth_shading, use_transform, use_materials, use_recursiv
                         image = load_image(mdr_ob.texture_name+".bmp", parent_dir, recursive=True, relpath=relpath)
 
                 if image is not None:
+                    print(f"{mdr_ob.texture_name=} {image.channels=}")
                     ma_wrap.base_color_texture.image = image
                 else:
                     print("Could not load", mdr_ob.texture_name)
@@ -149,14 +151,65 @@ def load(context, use_smooth_shading, use_transform, use_materials, use_recursiv
                      ma_wrap.roughness = 1.0
 
                 ma_wrap.ior = 1.0 # default all materials to not use Fresnel effect
+                # alpha constant is used by Blender BSDF if there is not an alpha image source
                 ma_wrap.alpha = alpha_const
-                #TODO alpha constant is not used by Blender if there is an alpha image
+
                 if image is not None and (alpha_const < 1.0 or image.depth == 32):
                         print("Attempting to add alpha texture %s, channels %i" % (image.name, image.channels))
                         ma_wrap.alpha_texture.image = image
                         mat.blend_method = 'BLEND'
                         #TODO this is a bit of a hack to get around textures that use 1 bit alpha
                         mat.show_transparent_back = False
+
+                        # add multiply node between alpha texture and BSDF alpha input
+                        bsdf_node = mat.node_tree.nodes.get("Principled BSDF")  # actual Principled BSDF node
+                        nodes = mat.node_tree.nodes
+                        links = mat.node_tree.links
+
+                        # Find an image texture node that feeds alpha
+                        image_node = None
+                        alpha_link = None
+
+                        # actual 32 bit BMP image will feed from alpha to alpha
+                        for link in links:
+                            if (link.to_node == bsdf_node and
+                                link.to_socket.name == "Alpha" and
+                                link.from_socket.name == "Alpha"):
+                                image_node = link.from_node
+                                alpha_link = link
+                                break
+                        # however, 24 bit BMP image will feed from color to alpha which is not desired, so delete that link
+                        if not image_node:
+                            for link in links:
+                                if (link.to_node == bsdf_node and
+                                    link.to_socket.name == "Alpha" and
+                                    link.from_socket.name == "Color"):
+                                    image_node = link.from_node
+                                    links.remove(link)
+                                    break
+                        if not image_node:
+                            print("No image texture feeding BSDF Alpha")
+                        else:
+                            # Create Math node
+                            math_node = nodes.new(type='ShaderNodeMath')
+                            math_node.operation = 'MULTIPLY'
+                            math_node.use_clamp = True
+                            math_node.inputs[1].default_value = alpha_const
+
+                            # Place it visually
+                            math_node.location = (
+                                (image_node.location.x + bsdf_node.location.x) / 2,
+                                image_node.location.y + 200
+                            )
+                            # move image node for a cleaner look
+                            image_node.location = (image_node.location.x - 100, image_node.location.y)
+
+                            # Rewire
+                            if alpha_link:
+                                links.remove(alpha_link)
+                            links.new(image_node.outputs["Alpha"], math_node.inputs[0])
+                            links.new(math_node.outputs["Value"], bsdf_node.inputs["Alpha"])
+
                 norm_tex_name = mdr_ob.texture_name + "_normal map.bmp"
                 norm_tex_path = os.path.join(os.path.dirname(filepath), norm_tex_name)
                 print("Looking for", norm_tex_path)
