@@ -289,6 +289,34 @@ def load(context, use_smooth_shading, use_transform, use_materials, use_recursiv
                     print("Transform matrix - inverse transform matrix inverted:")
                     print(transform_matrix - inverse_transform_matrix.inverted())
 
+        # print out Blender bounding box
+        if debug_logs:
+            coords = [ob.matrix_world @ Vector(corner) for corner in ob.bound_box]
+
+            min_corner = Vector((
+                min(v.x for v in coords),
+                min(v.y for v in coords),
+                min(v.z for v in coords),
+            ))
+
+            max_corner = Vector((
+                max(v.x for v in coords),
+                max(v.y for v in coords),
+                max(v.z for v in coords),
+            ))
+
+            print(f"Blender bounding box bin {ob.name}: {min_corner}")
+            print(f"Blender bounding box max {ob.name}: {max_corner}")
+            min_bbox = Vector((mdr_ob.bbox_x_min, mdr_ob.bbox_y_min, mdr_ob.bbox_z_min))
+            max_bbox = Vector((mdr_ob.bbox_x_max, mdr_ob.bbox_y_max, mdr_ob.bbox_z_max))
+            print(f"MDR bounding box bin {ob.name}: {min_bbox}")
+            print(f"MDR bounding box max {ob.name}: {max_bbox}")
+            print(transform_matrix @ min_bbox)
+            print(transform_matrix @ max_bbox)
+            print(inverse_transform_matrix @ min_bbox)
+            print(inverse_transform_matrix @ max_bbox)
+
+
         view_layer = bpy.context.view_layer
         collection = view_layer.active_layer_collection.collection
 
