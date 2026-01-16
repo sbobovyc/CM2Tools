@@ -418,13 +418,17 @@ class MDRObject:
                 self.vertex_normal_array.append((nx, ny, nz))
         logging.info(f"End normals at {f.tell():#x}")
 
+        # the following data only seems to be present on vehicle tracks
         footer_counter, = struct.unpack("<I", f.read(4))  # read at 00453649
-        logging.info(f"{footer_counter=}")
+        # seen this value go as high as 17, see m2a3-era-lod-2.mdr
+        logging.info(f"{self.name=}, {footer_counter=}")
         if footer_counter != 0:
             logging.info(f"Parsing footer at {f.tell():#x}")
             for i in range(0, footer_counter):
+                logging.info(f"footer element {i} at {f.tell():#x}")
                 logging.info(struct.unpack("<fff", f.read(12)))
                 length, = struct.unpack("<I", f.read(4))
                 logging.info(f"{length=}")
-                logging.info(f"Uknown content {f.read(length * 4)}")
+                uint32_array = struct.unpack("<"+"I"*length, f.read(length * 4))
+                logging.info(f"Uknown content {uint32_array}")
         logging.info("End model 0x%x", f.tell())
