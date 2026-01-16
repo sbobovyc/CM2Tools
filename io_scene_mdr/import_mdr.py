@@ -305,16 +305,24 @@ def load(context, use_smooth_shading, use_transform, use_materials, use_recursiv
                 max(v.z for v in coords),
             ))
 
-            print(f"Blender bounding box bin {ob.name}: {min_corner}")
+            print(f"Blender bounding box min {ob.name}: {min_corner}")
             print(f"Blender bounding box max {ob.name}: {max_corner}")
+            # calculate bounding box center
+            local_center = sum((Vector(corner) for corner in ob.bound_box), Vector()) / 8
+            world_center = ob.matrix_world @ local_center
+            print(f"Blender bounding box local center {ob.name}: {local_center}")
+            print(f"Blender bounding box world center {ob.name}: {world_center}")
+
             min_bbox = Vector((mdr_ob.bbox_x_min, mdr_ob.bbox_y_min, mdr_ob.bbox_z_min))
             max_bbox = Vector((mdr_ob.bbox_x_max, mdr_ob.bbox_y_max, mdr_ob.bbox_z_max))
-            print(f"MDR bounding box bin {ob.name}: {min_bbox}")
+            print(f"MDR bounding box min {ob.name}: {min_bbox}")
             print(f"MDR bounding box max {ob.name}: {max_bbox}")
-            print(transform_matrix @ min_bbox)
-            print(transform_matrix @ max_bbox)
-            print(inverse_transform_matrix @ min_bbox)
-            print(inverse_transform_matrix @ max_bbox)
+            bbox_center = (Vector(min_bbox) + Vector(max_bbox)) / 2
+            print(f"MDR bounding box center {ob.name}: {bbox_center}")
+            #print(transform_matrix @ min_bbox)
+            #print(transform_matrix @ max_bbox)
+            #print(inverse_transform_matrix @ min_bbox)
+            #print(inverse_transform_matrix @ max_bbox)
 
 
         view_layer = bpy.context.view_layer
