@@ -233,21 +233,9 @@ def save(operator, context, filepath, var_float=1.0, use_metadata=False, path_mo
             mdr_obj.meta_data3 = []
             mdr_obj.foliage_meta = {}
             if use_metadata:
-                for i in range(0, 11):
-                    try:
-                        mdr_obj.meta_data1.append(ob["meta1_%i" % i])
-                    except KeyError as e:
-                        print(e)
-                for i in range(0, 24):
-                    try:
-                        mdr_obj.meta_data2.append(ob["meta2_%i" % i])
-                    except KeyError as e:
-                        print(e)
-                for i in range(0, 35):
-                    try:
-                        mdr_obj.meta_data3.append(ob["meta3_%i" % i])
-                    except KeyError as e:
-                        print(e)
+                mdr_obj.meta_data1 = ob["meta1"]
+                mdr_obj.meta_data2 = ob["meta2"]
+                mdr_obj.meta_data3 = ob["meta3"]
                 mdr_obj.meta_data_unk1 = ob["meta_unk1"]
                 mdr_obj.meta_data_unk2 = ob["meta_unk2"]
             #TODO export foliage_meta

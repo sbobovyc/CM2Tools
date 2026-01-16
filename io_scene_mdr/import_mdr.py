@@ -352,12 +352,10 @@ def load(context, use_smooth_shading, use_transform, use_materials, use_recursiv
 
         # metadata
         if use_metadata:
-            for i in range(0, len(mdr_ob.meta_data1)):
-                ob["meta1_%i" % i] = mdr_ob.meta_data1[i]
-            for i in range(0, len(mdr_ob.meta_data2)):
-                ob["meta2_%i" % i] = mdr_ob.meta_data2[i]
-            for i in range(0, len(mdr_ob.meta_data3)):
-                ob["meta3_%i" % i] = mdr_ob.meta_data3[i]
+            ob["meta1"] = mdr_ob.meta_data1
+            ob["meta2"] = mdr_ob.meta_data2
+            ob["meta3"] = mdr_ob.meta_data3
+
             ob["meta_unk1"] = mdr_ob.meta_data_unk1
             ob["meta_unk2"] = mdr_ob.meta_data_unk2
             for meta in mdr_ob.foliage_meta:
